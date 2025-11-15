@@ -1,0 +1,183 @@
+{
+  "createdAt": "2025-10-30T03:32:16.083Z",
+  "users": [
+    {
+      "user_id": 1,
+      "username": "admin",
+      "email": "admin@fastfood.local",
+      "role": "admin",
+      "status": "active",
+      "full_name": null,
+      "phone_number": null,
+      "address": null,
+      "gender": "unknown",
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    },
+    {
+      "user_id": 2,
+      "username": "alice",
+      "email": "alice@example.com",
+      "role": "customer",
+      "status": "active",
+      "full_name": null,
+      "phone_number": null,
+      "address": null,
+      "gender": "unknown",
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    },
+    {
+      "user_id": 3,
+      "username": "linh11",
+      "email": "caolinhcao12345@gmail.com",
+      "role": "customer",
+      "status": "active",
+      "full_name": "Linh",
+      "phone_number": "0973508760",
+      "address": null,
+      "gender": "male",
+      "createdAt": "2025-10-27T15:58:22.000Z",
+      "updatedAt": "2025-10-30T03:21:38.000Z",
+      "deletedAt": "2025-10-30T03:21:38.000Z"
+    },
+    {
+      "user_id": 4,
+      "username": "linhcao",
+      "email": "linhcq.22810310301@epu.edu.vn",
+      "role": "staff",
+      "status": "locked",
+      "full_name": "Linh",
+      "phone_number": "0123456789",
+      "address": null,
+      "gender": "male",
+      "createdAt": "2025-10-27T16:19:11.000Z",
+      "updatedAt": "2025-10-30T03:21:54.000Z",
+      "deletedAt": null
+    },
+    {
+      "user_id": 5,
+      "username": "linhcao11",
+      "email": "agshdnhf@gmail.com",
+      "role": "customer",
+      "status": "active",
+      "full_name": "Linh",
+      "phone_number": "234563456",
+      "address": null,
+      "gender": "female",
+      "createdAt": "2025-10-29T18:03:04.000Z",
+      "updatedAt": "2025-10-29T18:03:04.000Z",
+      "deletedAt": null
+    }
+  ],
+  "products": [
+    {
+      "product_id": 1,
+      "name": "Cheese Burger",
+      "description": "Bánh burger phô mai",
+      "food_type": "other",
+      "price": "55000.00",
+      "image_url": "/img/burger1.jpg",
+      "is_active": 1,
+      "category_id": 1,
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    },
+    {
+      "product_id": 2,
+      "name": "Double Beef Burger",
+      "description": "Burger bò 2 lớp",
+      "food_type": "other",
+      "price": "69000.00",
+      "image_url": "/img/burger2.jpg",
+      "is_active": 1,
+      "category_id": 1,
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    },
+    {
+      "product_id": 3,
+      "name": "French Fries",
+      "description": "Khoai tây chiên",
+      "food_type": "other",
+      "price": "25000.00",
+      "image_url": "/img/fries.jpg",
+      "is_active": 1,
+      "category_id": 3,
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    },
+    {
+      "product_id": 4,
+      "name": "Coke",
+      "description": "Nước ngọt có ga",
+      "food_type": "other",
+      "price": "15000.00",
+      "image_url": "/img/coke.jpg",
+      "is_active": 1,
+      "category_id": 2,
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    },
+    {
+      "product_id": 5,
+      "name": "Vanilla Ice Cream",
+      "description": "Kem vani",
+      "food_type": "other",
+      "price": "20000.00",
+      "image_url": "/img/icecream.jpg",
+      "is_active": 1,
+      "category_id": 4,
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    }
+  ],
+  "productOptions": [],
+  "categories": [
+    {
+      "category_id": 1,
+      "category_name": "Burgers",
+      "description": "Bánh burger",
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    },
+    {
+      "category_id": 2,
+      "category_name": "Drinks",
+      "description": "Đồ uống",
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    },
+    {
+      "category_id": 3,
+      "category_name": "Sides",
+      "description": "Món ăn kèm",
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    },
+    {
+      "category_id": 4,
+      "category_name": "Desserts",
+      "description": "Tráng miệng",
+      "createdAt": "2025-10-26T17:46:05.000Z",
+      "updatedAt": "2025-10-26T17:46:05.000Z",
+      "deletedAt": null
+    }
+  ],
+  "orders": [],
+  "orderItems": [],
+  "payments": [],
+  "promotions": [],
+  "inventory": [],
+  "systemSettings": []
+}
