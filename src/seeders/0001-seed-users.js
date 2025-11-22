@@ -12,7 +12,7 @@ module.exports = {
         full_name: 'Administrator',
         role: 'admin',
         status: 'active',
-        created_at: now, 
+        created_at: now,
         updated_at: now
       },
       {
@@ -22,7 +22,7 @@ module.exports = {
         full_name: 'Alice Customer',
         role: 'customer',
         status: 'active',
-        created_at: now, 
+        created_at: now,
         updated_at: now
       }
     ]);

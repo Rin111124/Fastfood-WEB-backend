@@ -153,7 +153,25 @@ app.get("/healthz", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+// Root endpoint for API-only deployment
+app.get("/", (req, res) => {
+  res.json({
+    message: "Fastfood API Server",
+    version: "1.0.0",
+    endpoints: {
+      health: "/healthz",
+      api: "/api"
+    }
+  });
+});
+
 const maybeServeFrontend = () => {
+  // Skip frontend serving in production/Railway environment
+  if (process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT) {
+    console.log('Skipping frontend serving in production environment');
+    return;
+  }
+
   const candidates = [];
 
   if (process.env.FRONTEND_STATIC_ROOT) {
