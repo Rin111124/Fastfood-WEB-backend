@@ -105,6 +105,12 @@ const allowAllInDev = (process.env.NODE_ENV || "development") !== "production";
 
 const corsOptions = {
   origin: (origin, callback) => {
+    // Allow all if CLIENT_ORIGINS contains '*'
+    const clientOrigins = process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || "";
+    if (clientOrigins.includes('*')) {
+      return callback(null, true);
+    }
+
     if (
       !origin ||
       allowAllInDev ||
