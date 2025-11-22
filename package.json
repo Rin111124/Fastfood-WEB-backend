@@ -5,7 +5,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node -r @babel/register src/server.js",
-    "dev": "nodemon --exec ./node_modules/.bin/babel-node src/server.js",
+    "dev": "nodemon src/server.js",
     "migrate": "npx sequelize-cli db:migrate"
   },
   "author": "Linh",
