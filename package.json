@@ -1,11 +1,10 @@
 {
   "name": "nodejs",
   "version": "1.0.0",
-  "type": "module",
   "description": "backend nodejs",
   "main": "src/server.js",
   "scripts": {
-    "start": "node src/server.js",
+    "start": "node -r @babel/register src/server.js",
     "dev": "nodemon --exec ./node_modules/.bin/babel-node src/server.js",
     "migrate": "npx sequelize-cli db:migrate"
   },
