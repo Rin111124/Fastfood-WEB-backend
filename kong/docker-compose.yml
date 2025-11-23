@@ -1,0 +1,45 @@
+version: "3.8"
+
+services:
+  kong-database:
+    image: postgres:14
+    container_name: kong-database
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_DB: kong
+      POSTGRES_PASSWORD: kong
+    volumes:
+      - kong_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "kong"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kong:
+    image: kong/kong-gateway:3.12.0.0
+    container_name: kong
+    depends_on:
+      kong-database:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - "8000:8000" # Proxy (public) port
+      - "8001:8001" # Admin API
+      - "8002:8002" # Kong Manager (if enabled later)
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_DATABASE: kong
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+    volumes:
+      - ./kong.yml:/kong/declarative/kong.yml:ro
+
+volumes:
+  kong_db_data:

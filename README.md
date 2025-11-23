@@ -95,3 +95,11 @@ The backend now keeps track of who is on-duty (and at which station) so orders c
 - Station dashboards consume `/api/staff/kds/stations/:stationCode/tasks` (optional `includeCompletedMinutes`, `limit` query params) and can monitor overload through `/api/staff/kds/stations/:stationCode/load`. Packer/expo screens use `/api/staff/kds/packing-board`.
 - Touching a ticket (acknowledge / start / complete / cancel) is done via `POST /api/staff/kds/stations/:stationCode/tasks/:taskId/status` with body `{ "status": "in_progress" }`, etc. WebSocket events (`kds:tasks:created`, `kds:tasks:updated`) keep every KDS screen in sync in realtime.
 - Load balancing: when `pending` tickets for a station exceed the defined `capacity_per_batch * 2` (default `6` if unset), the `/load` endpoint returns `overloaded: true` so the supervisor UI can flash the station and re-route staff.
+### Kong gateway (optional)
+
+Kong assets live in ./kong/ for local rate limiting and API key enforcement on top of the Express server.
+
+- Start: cd backend/kong && docker compose up -d
+- Sync config (after installing deck locally): cd backend/kong && deck sync --config deck.yml kong.yml
+- Test: send requests through http://localhost:8000/api with header apikey: local-demo-key
+- Stop: cd backend/kong && docker compose down

@@ -107,7 +107,10 @@ const corsOptions = {
   origin: (origin, callback) => {
     // Allow all if CLIENT_ORIGINS contains '*'
     const clientOrigins = process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || "";
+    console.log(`🔍 CORS check - Origin: ${origin}, CLIENT_ORIGINS: ${clientOrigins}`);
+    
     if (clientOrigins.includes('*')) {
+      console.log('✅ CORS: Allowing all origins (wildcard)');
       return callback(null, true);
     }
 
@@ -117,9 +120,10 @@ const corsOptions = {
       !allowedOrigins.size ||
       allowedOrigins.has(normalizeOrigin(origin))
     ) {
+      console.log('✅ CORS: Allowed');
       return callback(null, true);
     }
-    console.warn(`Blocked CORS request from origin: ${origin}`);
+    console.warn(`❌ Blocked CORS request from origin: ${origin}`);
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true

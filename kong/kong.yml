@@ -1,0 +1,22 @@
+_format_version: "3.0"
+services:
+  - name: backend
+    url: http://host.docker.internal:3000
+    routes:
+      - name: backend-api
+        paths:
+          - /api
+        strip_path: false
+plugins:
+  - name: rate-limiting
+    service: backend
+    config:
+      minute: 5
+      hour: 60
+      policy: local
+  - name: key-auth
+    service: backend
+consumers:
+  - username: local-tester
+    keyauth_credentials:
+      - key: local-demo-key
