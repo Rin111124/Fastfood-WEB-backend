@@ -2,7 +2,7 @@
 
 This folder keeps the Kong assets used for local API gateway testing on top of the Express backend.
 
-- kong.yml: declarative config with key-auth + rate limits for /api (consumer local-tester, key local-demo-key). The target points to http://host.docker.internal:3000; change it if your backend runs elsewhere.
+- kong.yml: declarative config with key-auth + rate limits for /api (consumer local-tester, key local-demo-key), ACL allowlist `trusted-clients`, and payload cap (1 MB). Target points to https://fastfood-web-backend-production.up.railway.app; change if your backend runs elsewhere.
 - deck.yml: deck profile pointing at http://localhost:8001 (install deck separately; the binary is not checked in).
 - docker-compose.yml: spins up Postgres + Kong for development.
 

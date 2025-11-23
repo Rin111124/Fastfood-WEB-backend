@@ -16,7 +16,19 @@ plugins:
       policy: local
   - name: key-auth
     service: backend
+  - name: acl
+    service: backend
+    config:
+      allow:
+        - trusted-clients
+  - name: request-size-limiting
+    service: backend
+    config:
+      allowed_payload_size: 1 # MB
+      require_content_length: true
 consumers:
   - username: local-tester
     keyauth_credentials:
       - key: local-demo-key
+    acls:
+      - group: trusted-clients

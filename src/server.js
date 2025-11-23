@@ -15,6 +15,8 @@ import { UPLOAD_ROOT } from "./middleware/uploadMiddleware.js";
 import { initSocket } from "./realtime/io.js";
 
 const app = express();
+// Trust the first proxy (Railway/Render/Heroku) so the app sees real client IPs
+app.set("trust proxy", 1);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
