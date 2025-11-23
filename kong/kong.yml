@@ -1,7 +1,7 @@
 _format_version: "3.0"
 services:
   - name: backend
-    url: http://host.docker.internal:3000
+    url: https://fastfood-web-backend-production.up.railway.app
     routes:
       - name: backend-api
         paths:
