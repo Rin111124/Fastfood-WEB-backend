@@ -33,6 +33,6 @@ plugins:
 consumers:
   - username: local-tester
     keyauth_credentials:
-      - key: local-demo-key
+      - key: ${KONG_CONSUMER_KEY}
     acls:
       - group: trusted-clients

@@ -1,7 +1,10 @@
 FROM kong:3.6
 
-# Copy the declarative config (DB-less)
-COPY kong.yml /kong/declarative/kong.yml
+# Install envsubst for runtime templating (no secrets baked into image)
+RUN apt-get update && apt-get install -y --no-install-recommends gettext-base && rm -rf /var/lib/apt/lists/*
+
+# Copy the declarative config template (will be materialized at runtime)
+COPY kong.yml /kong/declarative/kong.template.yml
 
 ENV KONG_DATABASE=off \
     KONG_DECLARATIVE_CONFIG=/kong/declarative/kong.yml \
@@ -10,9 +13,10 @@ ENV KONG_DATABASE=off \
     KONG_ADMIN_LISTEN=off \
     KONG_NGINX_WORKER_PROCESSES=1 \
     KONG_NGINX_WORKER_CONNECTIONS=1024 \
-    KONG_PROXY_LISTEN=0.0.0.0:8000
+    KONG_PROXY_LISTEN=0.0.0.0:8000 \
+    KONG_CONSUMER_KEY=local-demo-key
 
 EXPOSE 8000
 
-# Railway injects $PORT; forward it to Kong's proxy listener
-CMD [ "sh", "-c", "KONG_PROXY_LISTEN=0.0.0.0:${PORT:-8000} kong start" ]
+# Railway injects $PORT; materialize kong.yml from template with env vars, then start
+CMD [ "sh", "-c", "envsubst < /kong/declarative/kong.template.yml > /kong/declarative/kong.yml && KONG_PROXY_LISTEN=0.0.0.0:${PORT:-8000} kong start" ]
