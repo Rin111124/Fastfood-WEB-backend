@@ -10,7 +10,11 @@ RUN set -eux; \
 USER kong
 
 # Copy the declarative config template (will be materialized at runtime)
+USER root
 COPY kong.yml /kong/declarative/kong.template.yml
+# Ensure Kong user can write rendered config
+RUN chown -R kong:kong /kong && chmod -R u+w /kong/declarative
+USER kong
 
 ENV KONG_DATABASE=off \
     KONG_DECLARATIVE_CONFIG=/kong/declarative/kong.yml \
