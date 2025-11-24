@@ -15,8 +15,8 @@ plugins:
   - name: rate-limiting
     service: backend
     config:
-      minute: 5
-      hour: 60
+      minute: 1000
+      hour: 60000
       policy: local
       limit_by: ip
   - name: request-size-limiting
