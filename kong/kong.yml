@@ -16,6 +16,13 @@ services:
           - /healthz
         strip_path: false
 plugins:
+  - name: key-auth
+    service: backend
+  - name: acl
+    service: backend
+    config:
+      allow:
+        - trusted-clients
   - name: rate-limiting
     service: backend
     config:
