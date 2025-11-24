@@ -1,7 +1,7 @@
 _format_version: "3.0"
 services:
   - name: backend
-    url: ${KONG_BACKEND_URL:-http://backend:3000}
+    url: $KONG_BACKEND_URL
     routes:
       - name: backend-api
         paths:
