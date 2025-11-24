@@ -32,6 +32,6 @@ The repo now ships a DB-less Kong image tailored for Railway (`backend/kong/Dock
 - Update `backend/kong/kong.yml` so `services[0].url` points to your Railway backend domain or custom domain.
 - In Railway, create a **new service** -> **Deploy from repo**, set **Root Directory** to `backend/kong`, and let Railway build from `backend/kong/Dockerfile`.
 - Add an environment variable `PORT=8000` (or any port you prefer); the container binds Kong's proxy to `$PORT`.
-- Set `KONG_CONSUMER_KEY=<your-prod-key>` in Railway env vars (the Dockerfile templates `kong.yml` at runtime so the key isn't baked into git/image; default is `local-demo-key` for local testing).
+- Set `KONG_CONSUMER_KEY=<your-prod-key>` in Railway env vars (the Dockerfile templates `kong.yml` at runtime so the key isn't baked into git/image; default is `local-demo-key` for local testing). A placeholder lives in `backend/kong/.env.example`; copy to `.env` locally if needed.
 - Deploy. Once healthy, call the gateway at `https://<your-kong-service>.up.railway.app/api/...` with header `apikey: local-demo-key` (ACL `trusted-clients` is already wired).
 - Admin API is disabled (`KONG_ADMIN_LISTEN=off`); change the config and redeploy whenever you adjust plugins/routes.
