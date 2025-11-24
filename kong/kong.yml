@@ -25,7 +25,7 @@ plugins:
     service: backend
     config:
       allowed_payload_size: 1 # MB
-      require_content_length: true
+      require_content_length: false
 consumers:
   - username: local-tester
     keyauth_credentials:
