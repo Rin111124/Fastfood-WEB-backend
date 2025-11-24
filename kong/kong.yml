@@ -41,7 +41,8 @@ plugins:
       minute: 5
       hour: 60
       policy: local
-      limit_by: ip
+      limit_by: credential
+      second: 3
       fault_tolerant: false
 consumers:
   - username: local-tester
