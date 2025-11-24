@@ -13,6 +13,7 @@ import initApiRoutes from "./routes/api/index.js";
 import initWebRoutes from "./routes/web/index.js";
 import { UPLOAD_ROOT } from "./middleware/uploadMiddleware.js";
 import { initSocket } from "./realtime/io.js";
+import gatewayGuard from "./middleware/gatewayGuard.js";
 
 const app = express();
 // Trust the first proxy (Railway/Render/Heroku) so the app sees real client IPs
@@ -133,6 +134,9 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
+
+// Enforce shared secret from gateway (no-op when not configured)
+app.use(gatewayGuard());
 
 // Body parsing
 app.use(

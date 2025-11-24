@@ -1,7 +1,7 @@
 _format_version: "3.0"
 services:
   - name: backend
-    url: https://fastfood-web-backend-production.up.railway.app
+    url: ${KONG_BACKEND_URL}
     routes:
       - name: backend-api
         paths:
@@ -12,19 +12,19 @@ services:
           - /healthz
         strip_path: false
 plugins:
+  - name: request-transformer
+    service: backend
+    config:
+      add:
+        headers:
+          - "x-gateway-secret:${GATEWAY_SHARED_SECRET}"
   - name: rate-limiting
     service: backend
     config:
       minute: 5
       hour: 60
       policy: local
-  - name: key-auth
-    service: backend
-  - name: acl
-    service: backend
-    config:
-      allow:
-        - trusted-clients
+      limit_by: ip
   - name: request-size-limiting
     service: backend
     config:
