@@ -24,3 +24,13 @@ curl -X POST http://localhost:8000/api/auth/login \
 ```
 
 Stop the stack with `docker compose down`. Adjust rate limits and authentication in kong.yml as needed.
+
+## Railway deploy (production)
+
+The repo now ships a DB-less Kong image tailored for Railway (`backend/kong/Dockerfile`). Quick path to run it in front of your deployed backend:
+
+- Update `backend/kong/kong.yml` so `services[0].url` points to your Railway backend domain or custom domain.
+- In Railway, create a **new service** -> **Deploy from repo**, set **Root Directory** to `backend/kong`, and let Railway build from `backend/kong/Dockerfile`.
+- Add an environment variable `PORT=8000` (or any port you prefer); the container binds Kong's proxy to `$PORT`.
+- Deploy. Once healthy, call the gateway at `https://<your-kong-service>.up.railway.app/api/...` with header `apikey: local-demo-key` (ACL `trusted-clients` is already wired).
+- Admin API is disabled (`KONG_ADMIN_LISTEN=off`); change the config and redeploy whenever you adjust plugins/routes.
