@@ -7,6 +7,10 @@ services:
         paths:
           - /api
         strip_path: false
+      - name: backend-login
+        paths:
+          - /api/auth/login
+        strip_path: false
       - name: backend-health
         paths:
           - /healthz
@@ -15,8 +19,8 @@ plugins:
   - name: rate-limiting
     service: backend
     config:
-      minute: 1000
-      hour: 60000
+      minute: 200
+      hour: 2000
       policy: local
       limit_by: ip
   - name: request-size-limiting
@@ -24,6 +28,14 @@ plugins:
     config:
       allowed_payload_size: 1 # MB
       require_content_length: false
+  - name: rate-limiting
+    route: backend-login
+    config:
+      minute: 5
+      hour: 60
+      policy: local
+      limit_by: ip
+      fault_tolerant: false
 consumers:
   - username: local-tester
     keyauth_credentials:
