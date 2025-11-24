@@ -1,7 +1,13 @@
 FROM kong:3.6
 
 # Install envsubst for runtime templating (no secrets baked into image)
-RUN apt-get update && apt-get install -y --no-install-recommends gettext-base && rm -rf /var/lib/apt/lists/*
+USER root
+RUN set -eux; \
+    mkdir -p /var/lib/apt/lists/partial; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends gettext-base; \
+    rm -rf /var/lib/apt/lists/*
+USER kong
 
 # Copy the declarative config template (will be materialized at runtime)
 COPY kong.yml /kong/declarative/kong.template.yml
