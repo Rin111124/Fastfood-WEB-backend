@@ -7,6 +7,10 @@ services:
         paths:
           - /api
         strip_path: false
+      - name: backend-health
+        paths:
+          - /healthz
+        strip_path: false
 plugins:
   - name: rate-limiting
     service: backend
