@@ -1,7 +1,7 @@
 _format_version: "3.0"
 services:
   - name: backend
-    url: ${KONG_BACKEND_URL}
+    url: ${KONG_BACKEND_URL:-http://backend:3000}
     routes:
       - name: backend-api
         paths:
@@ -12,12 +12,6 @@ services:
           - /healthz
         strip_path: false
 plugins:
-  - name: request-transformer
-    service: backend
-    config:
-      add:
-        headers:
-          - "x-gateway-secret:${GATEWAY_SHARED_SECRET}"
   - name: rate-limiting
     service: backend
     config:
