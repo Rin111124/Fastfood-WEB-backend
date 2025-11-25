@@ -16,6 +16,25 @@ services:
           - /healthz
         strip_path: false
 plugins:
+  - name: request-transformer
+    service: backend
+    config:
+      add:
+        # Inject shared secret so backend can verify traffic really passed through Kong
+        headers:
+          - "x-gateway-secret:${GATEWAY_SHARED_SECRET}"
+  - name: bot-detection
+    service: backend
+  - name: response-transformer
+    service: backend
+    config:
+      add:
+        # Basic security headers (browser hardening)
+        headers:
+          - X-Frame-Options:DENY
+          - X-Content-Type-Options:nosniff
+          - Referrer-Policy:no-referrer
+          - Strict-Transport-Security:max-age=31536000; includeSubDomains
   - name: key-auth
     service: backend
   - name: acl
