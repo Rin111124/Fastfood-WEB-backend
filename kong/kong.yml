@@ -59,13 +59,10 @@ plugins:
           - Strict-Transport-Security:max-age=31536000; includeSubDomains
   - name: key-auth
     service: backend
-    # Skip key-auth on OPTIONS so preflight is not challenged
-    run_on_preflight: false
-    config: {}
+    config:
+      options_passthrough: true
   - name: acl
     service: backend
-    # Skip ACL on preflight (no consumer set yet)
-    run_on_preflight: false
     config:
       allow:
         - trusted-clients
