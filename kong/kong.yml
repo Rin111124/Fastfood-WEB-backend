@@ -15,12 +15,25 @@ services:
         paths:
           - /healthz
         strip_path: false
+  - name: backend-uploads
+    url: $KONG_BACKEND_URL
+    routes:
+      - name: backend-uploads-route
+        paths:
+          - /uploads
+        strip_path: false
 plugins:
   - name: request-transformer
     service: backend
     config:
       add:
         # Inject shared secret so backend can verify traffic really passed through Kong
+        headers:
+          - "x-gateway-secret:${GATEWAY_SHARED_SECRET}"
+  - name: request-transformer
+    service: backend-uploads
+    config:
+      add:
         headers:
           - "x-gateway-secret:${GATEWAY_SHARED_SECRET}"
   - name: bot-detection
@@ -30,6 +43,15 @@ plugins:
     config:
       add:
         # Basic security headers (browser hardening)
+        headers:
+          - X-Frame-Options:DENY
+          - X-Content-Type-Options:nosniff
+          - Referrer-Policy:no-referrer
+          - Strict-Transport-Security:max-age=31536000; includeSubDomains
+  - name: response-transformer
+    service: backend-uploads
+    config:
+      add:
         headers:
           - X-Frame-Options:DENY
           - X-Content-Type-Options:nosniff
