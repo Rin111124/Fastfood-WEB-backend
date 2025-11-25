@@ -59,11 +59,13 @@ plugins:
           - Strict-Transport-Security:max-age=31536000; includeSubDomains
   - name: key-auth
     service: backend
-    config:
-      # Let preflight OPTIONS pass without apikey to avoid 401 on CORS checks
-      run_on_preflight: false
+    # Skip key-auth on OPTIONS so preflight is not challenged
+    run_on_preflight: false
+    config: {}
   - name: acl
     service: backend
+    # Skip ACL on preflight (no consumer set yet)
+    run_on_preflight: false
     config:
       allow:
         - trusted-clients
