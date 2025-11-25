@@ -60,7 +60,8 @@ plugins:
   - name: key-auth
     service: backend
     config:
-      options_passthrough: true
+      # Let preflight OPTIONS pass without apikey to avoid 401 on CORS checks
+      run_on_preflight: false
   - name: acl
     service: backend
     config:
