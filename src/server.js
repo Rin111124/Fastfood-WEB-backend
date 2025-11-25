@@ -18,9 +18,13 @@ import gatewayGuard from "./middleware/gatewayGuard.js";
 const app = express();
 // Trust the first proxy (Railway/Render/Heroku) so the app sees real client IPs
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const NODE_ENV = process.env.NODE_ENV || "development";
+const isProd = NODE_ENV === "production" || Boolean(process.env.RAILWAY_ENVIRONMENT);
 
 const resolvePort = (value, defaultPort = 3000) => {
   const parsed = Number(value);
@@ -104,7 +108,19 @@ const normalizeOrigin = (origin) => {
 };
 
 const allowedOrigins = buildAllowedOrigins();
-const allowAllInDev = (process.env.NODE_ENV || "development") !== "production";
+const allowAllInDev = !isProd;
+
+// Baseline security headers (keep API responses hard to abuse)
+app.use((req, res, next) => {
+  res.set("X-Frame-Options", "DENY");
+  res.set("X-Content-Type-Options", "nosniff");
+  res.set("Referrer-Policy", "no-referrer");
+  res.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  if (isProd) {
+    res.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+  next();
+});
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -155,8 +171,12 @@ app.use(
     secret: process.env.SESSION_SECRET || "fatfood-secret",
     resave: false,
     saveUninitialized: false,
+    name: "sid",
+    proxy: true,
     cookie: {
       httpOnly: true,
+      secure: isProd,
+      sameSite: "lax",
       maxAge: Number(process.env.SESSION_MAX_AGE || 1000 * 60 * 60 * 4)
     }
   })
@@ -183,7 +203,7 @@ app.get("/", (req, res) => {
 
 const maybeServeFrontend = () => {
   // Skip frontend serving in production/Railway environment
-  if (process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT) {
+  if (isProd) {
     console.log('Skipping frontend serving in production environment');
     return;
   }
