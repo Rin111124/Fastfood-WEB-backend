@@ -34,6 +34,7 @@ The repo now ships a DB-less Kong image tailored for Railway (`backend/kong/Dock
 - Add env vars: `PORT=8000` (or any), `KONG_CONSUMER_KEY=<your-prod-key>`, `KONG_BACKEND_URL=<private-backend-url>`, `GATEWAY_SHARED_SECRET=<shared-secret>`. The Dockerfile renders kong.yml at runtime so keys/URLs are not baked into git/image. `backend/kong/.env.example` has placeholders.
 - Deploy. Once healthy, call the gateway at `https://<your-kong-service>.up.railway.app/api/...` (no apikey needed; rate limit by IP + payload limit apply).
 - Admin API is disabled (`KONG_ADMIN_LISTEN=off`); change the config and redeploy whenever you adjust plugins/routes.
+- Verify gateway header injection: `curl -i https://<your-kong-service>.up.railway.app/api/debug/headers -H "apikey: <your-prod-key>"` and check `gatewayHeaderMatches: true` in the JSON response.
 
 ### Frontend + backend routing through Kong
 - Set your frontend `VITE_API_BASE_URL` to the Kong domain (or custom domain on that service). All browser/API calls flow through Kong.
