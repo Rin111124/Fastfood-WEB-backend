@@ -1,9 +1,36 @@
 import { AuthError, login, register } from './auth.service.js';
+import { requestPasswordReset, resetPasswordWithToken } from "./passwordReset.service.js";
+
+const respondIfRateLimited = (res, limiterState) => {
+  if (!limiterState || !limiterState.blocked) return false;
+
+  const retryAfter = limiterState.retryAfterSeconds || 0;
+  if (retryAfter) {
+    res.set("Retry-After", retryAfter.toString());
+  }
+
+  res.status(429).json({
+    success: false,
+    code: "LOGIN_RATE_LIMITED",
+    message:
+      retryAfter > 0
+        ? `Ban da nhap sai qua nhieu lan. Vui long thu lai sau ${retryAfter} giay.`
+        : "Ban da nhap sai qua nhieu lan. Vui long thu lai sau mot khoang thoi gian.",
+    retryAfterSeconds: retryAfter,
+    requireCaptcha: Boolean(limiterState.requiresCaptcha)
+  });
+
+  return true;
+};
 
 const loginHandler = async (req, res) => {
   try {
     const { identifier, username, email, password } = req.body || {};
     const data = await login({ identifier, username, email, password });
+
+    if (res.locals?.loginSecurity?.markSuccess) {
+      res.locals.loginSecurity.markSuccess();
+    }
 
     return res.status(200).json({
       success: true,
@@ -11,12 +38,24 @@ const loginHandler = async (req, res) => {
     });
   } catch (error) {
     const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    const isInvalidCredentials =
+      error instanceof AuthError &&
+      (error.code === "INVALID_CREDENTIALS" || statusCode === 401);
+    let limiterState = null;
+
+    if (isInvalidCredentials && res.locals?.loginSecurity?.markFailure) {
+      limiterState = res.locals.loginSecurity.markFailure();
+      if (respondIfRateLimited(res, limiterState)) {
+        return;
+      }
+    }
 
     return res.status(statusCode).json({
       success: false,
       code: error.code || 'INTERNAL_SERVER_ERROR',
       message: error instanceof AuthError ? error.message : 'Dang nhap that bai',
       ...(error?.errors ? { errors: error.errors } : {}),
+      ...(limiterState?.requiresCaptcha ? { requireCaptcha: true } : {}),
       ...(statusCode >= 500 && process.env.NODE_ENV === 'development'
         ? { detail: error.message }
         : {})
@@ -47,7 +86,73 @@ const signupHandler = async (req, res) => {
   }
 };
 
+const forgotPasswordHandler = async (req, res) => {
+  try {
+    const { identifier, email, username } = req.body || {};
+    const rawIdentifier = identifier || email || username;
+    const result = await requestPasswordReset({
+      identifier: rawIdentifier,
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Neu thong tin hop le, email khoi phuc da duoc gui",
+      requested: true,
+      ...(process.env.NODE_ENV === "development" ? { token: result.token, resetUrl: result.resetUrl } : {})
+    });
+  } catch (error) {
+    const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    if (statusCode === 429 && error?.errors?.retryAfterSeconds) {
+      res.set("Retry-After", String(error.errors.retryAfterSeconds));
+    }
+    return res.status(statusCode).json({
+      success: false,
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message: error instanceof AuthError ? error.message : "Khong the gui email khoi phuc",
+      ...(error?.errors ? { errors: error.errors } : {}),
+      ...(statusCode === 429 && error?.errors?.retryAfterSeconds
+        ? { retryAfterSeconds: error.errors.retryAfterSeconds }
+        : {}),
+      ...(statusCode >= 500 && process.env.NODE_ENV === "development"
+        ? { detail: error.message }
+        : {})
+    });
+  }
+};
+
+const resetPasswordHandler = async (req, res) => {
+  try {
+    const { token, password } = req.body || {};
+    await resetPasswordWithToken({
+      token,
+      password,
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Dat lai mat khau thanh cong"
+    });
+  } catch (error) {
+    const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    return res.status(statusCode).json({
+      success: false,
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message: error instanceof AuthError ? error.message : "Khong the dat lai mat khau",
+      ...(error?.errors ? { errors: error.errors } : {}),
+      ...(statusCode >= 500 && process.env.NODE_ENV === "development"
+        ? { detail: error.message }
+        : {})
+    });
+  }
+};
+
 export {
   loginHandler,
-  signupHandler
+  signupHandler,
+  forgotPasswordHandler,
+  resetPasswordHandler
 };

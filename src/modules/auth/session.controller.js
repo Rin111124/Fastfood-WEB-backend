@@ -26,6 +26,19 @@ const getLoginPage = (req, res) => {
   return res.render("auth/login", { error });
 };
 
+const handleRateLimitRedirect = (req, limiterState) => {
+  if (!limiterState || !limiterState.blocked) return false;
+  const retryAfter = limiterState.retryAfterSeconds || 0;
+  const message =
+    retryAfter > 0
+      ? `Ban da nhap sai qua nhieu lan. Vui long thu lai sau ${retryAfter} giay.`
+      : "Ban da nhap sai qua nhieu lan. Vui long thu lai sau mot khoang thoi gian.";
+  if (req.session) {
+    req.session.authError = message;
+  }
+  return true;
+};
+
 const postLogin = async (req, res) => {
   try {
     const { identifier, username, email, password } = req.body || {};
@@ -36,10 +49,26 @@ const postLogin = async (req, res) => {
       req.session.token = accessToken;
     }
 
+    if (res.locals?.loginSecurity?.markSuccess) {
+      res.locals.loginSecurity.markSuccess();
+    }
+
     return res.redirect(redirectByRole(user.role));
   } catch (error) {
+    const isInvalidCredentials = error?.code === "INVALID_CREDENTIALS" || error?.statusCode === 401;
+    let limiterState = null;
+    if (isInvalidCredentials && res.locals?.loginSecurity?.markFailure) {
+      limiterState = res.locals.loginSecurity.markFailure();
+      if (handleRateLimitRedirect(req, limiterState)) {
+        return res.redirect("/login");
+      }
+    }
+
     if (req.session) {
-      req.session.authError = error?.message || "Dang nhap that bai";
+      req.session.authError =
+        limiterState?.requiresCaptcha
+          ? "Ban da nhap sai nhieu lan. Vui long hoan thanh CAPTCHA roi thu lai."
+          : error?.message || "Dang nhap that bai";
     }
     return res.redirect("/login");
   }

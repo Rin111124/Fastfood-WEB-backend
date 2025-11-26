@@ -5,7 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     username: { type: DataTypes.STRING(100), allowNull: false, unique: true, validate: { len: [3, 100] } },
     password: { type: DataTypes.STRING(255), allowNull: false },
     email: { type: DataTypes.STRING(150), allowNull: false, unique: true, validate: { isEmail: true } },
-    role: { type: DataTypes.ENUM('customer', 'admin', 'staff', 'shipper'), allowNull: false, defaultValue: 'customer' },
+    role: { type: DataTypes.ENUM('customer', 'admin', 'staff', 'shipper', 'guest'), allowNull: false, defaultValue: 'customer' },
     status: {
       type: DataTypes.ENUM('active', 'locked', 'suspended'),
       allowNull: false,
