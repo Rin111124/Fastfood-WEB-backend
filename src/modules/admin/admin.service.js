@@ -39,6 +39,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
 const BACKUP_DIR = path.join(__dirname, "..", "..", "..", "backups");
+const ALLOWED_ORDER_STATUSES = new Set([
+  "pending",
+  "confirmed",
+  "paid",
+  "preparing",
+  "delivering",
+  "shipping",
+  "completed",
+  "canceled",
+  "refunded"
+]);
+const ALLOWED_PAYMENT_STATUSES = new Set(["initiated", "success", "failed", "refunded"]);
 
 class AdminServiceError extends Error {
   constructor(message, metadata = {}) {
@@ -869,16 +881,24 @@ const updateOrderStatus = async (orderId, status, actorId) => {
     throw new AdminServiceError("Khong tim thay don hang", { orderId });
   }
 
-  order.status = status;
-  if (status === "completed") {
+  const normalizedStatus = typeof status === "string" ? status.trim().toLowerCase() : "";
+  if (!ALLOWED_ORDER_STATUSES.has(normalizedStatus)) {
+    throw new AdminServiceError("Trang thai don hang khong hop le", {
+      allowed: Array.from(ALLOWED_ORDER_STATUSES),
+      provided: status
+    });
+  }
+
+  order.status = normalizedStatus;
+  if (normalizedStatus === "completed") {
     order.completed_at = new Date();
   }
-  if (status === "canceled") {
+  if (normalizedStatus === "canceled") {
     order.completed_at = null;
   }
 
   await order.save();
-  await logAction(actorId, "UPDATE_ORDER_STATUS", "orders", { orderId, status });
+  await logAction(actorId, "UPDATE_ORDER_STATUS", "orders", { orderId, status: normalizedStatus });
   return order.get({ plain: true });
 };
 
@@ -905,8 +925,16 @@ const updatePaymentStatus = async (paymentId, status, actorId) => {
     throw new AdminServiceError("Khong tim thay giao dich", { paymentId });
   }
 
+  const normalizedStatus = typeof status === "string" ? status.trim().toLowerCase() : "";
+  if (!ALLOWED_PAYMENT_STATUSES.has(normalizedStatus)) {
+    throw new AdminServiceError("Trang thai thanh toan khong hop le", {
+      allowed: Array.from(ALLOWED_PAYMENT_STATUSES),
+      provided: status
+    });
+  }
+
   let orderUserId = null;
-  if (status === "success") {
+  if (normalizedStatus === "success") {
     await sequelize.transaction(async (t) => {
       let order = null;
       let needsFulfillment = false;
@@ -924,7 +952,7 @@ const updatePaymentStatus = async (paymentId, status, actorId) => {
       } else if (payment.order_id) {
         order = await Order.findByPk(payment.order_id, { transaction: t });
       }
-      await payment.update({ status, order_id: payment.order_id }, { transaction: t });
+      await payment.update({ status: normalizedStatus, order_id: payment.order_id }, { transaction: t });
       if (order) {
         if (needsFulfillment || (order.status !== "paid" && order.status !== "completed")) {
           if (order.status !== "paid" && order.status !== "completed") {
@@ -943,10 +971,10 @@ const updatePaymentStatus = async (paymentId, status, actorId) => {
       await clearCustomerCart(orderUserId);
     }
   } else {
-    await payment.update({ status });
+    await payment.update({ status: normalizedStatus });
   }
 
-  await logAction(actorId, "UPDATE_PAYMENT_STATUS", "payments", { paymentId, status });
+  await logAction(actorId, "UPDATE_PAYMENT_STATUS", "payments", { paymentId, status: normalizedStatus });
   return payment.get({ plain: true });
 };
 

@@ -54,6 +54,29 @@ import {
 import { requireRoles } from "../../middleware/authMiddleware.js";
 import { createMemoryImageUploader } from "../../middleware/uploadMiddleware.js";
 import { handleMulterError, handleGeneralError } from "../../middleware/errorMiddleware.js";
+import { validateBody, validateParams } from "../../middleware/validate.js";
+import {
+  assignOrderSchema,
+  categoryIdParamSchema,
+  createUserSchema,
+  inventoryUpsertSchema,
+  newsIdParamSchema,
+  optionIdParamSchema,
+  orderIdParamSchema,
+  paymentIdParamSchema,
+  productBaseSchema,
+  productIdParamSchema,
+  productUpdateSchema,
+  promoIdParamSchema,
+  promotionBaseSchema,
+  promotionUpdateSchema,
+  toggleProductSchema,
+  updateUserSchema,
+  userIdParamSchema,
+  userStatusSchema,
+  orderStatusSchema,
+  paymentStatusSchema
+} from "./admin.validation.js";
 
 const router = express.Router();
 
@@ -81,53 +104,120 @@ router.get("/reports/overview", reportOverviewHandler);
 
 // users
 router.get("/users", listUsersHandler);
-router.post("/users", createUserHandler);
-router.put("/users/:userId", updateUserHandler);
-router.patch("/users/:userId/status", setUserStatusHandler);
-router.delete("/users/:userId", deleteUserHandler);
-router.post("/users/:userId/restore", restoreUserHandler);
-router.post("/users/:userId/reset-password", resetPasswordHandler);
-router.post("/users/:userId/send-reset-email", sendResetEmailHandler);
+router.post("/users", validateBody(createUserSchema), createUserHandler);
+router.put(
+  "/users/:userId",
+  validateParams(userIdParamSchema),
+  validateBody(updateUserSchema),
+  updateUserHandler
+);
+router.patch(
+  "/users/:userId/status",
+  validateParams(userIdParamSchema),
+  validateBody(userStatusSchema),
+  setUserStatusHandler
+);
+router.delete("/users/:userId", validateParams(userIdParamSchema), deleteUserHandler);
+router.post("/users/:userId/restore", validateParams(userIdParamSchema), restoreUserHandler);
+router.post("/users/:userId/reset-password", validateParams(userIdParamSchema), resetPasswordHandler);
+router.post(
+  "/users/:userId/send-reset-email",
+  validateParams(userIdParamSchema),
+  sendResetEmailHandler
+);
 router.get("/staff", listStaffHandler);
 
 // categories
 router.get("/categories", listCategoriesHandler);
 router.post("/categories", createCategoryHandler);
-router.put("/categories/:categoryId", updateCategoryHandler);
-router.delete("/categories/:categoryId", deleteCategoryHandler);
+router.put("/categories/:categoryId", validateParams(categoryIdParamSchema), updateCategoryHandler);
+router.delete("/categories/:categoryId", validateParams(categoryIdParamSchema), deleteCategoryHandler);
 
 // products & options
 router.get("/products", listProductsHandler);
-router.post("/products", uploadProductImage, createProductHandler);
-router.put("/products/:productId", uploadProductImage, updateProductHandler);
-router.patch("/products/:productId/availability", toggleProductHandler);
-router.post("/products/:productId/toggle", toggleProductHandler);
-router.delete("/products/:productId", deleteProductHandler);
+router.post(
+  "/products",
+  uploadProductImage,
+  validateBody(productBaseSchema),
+  createProductHandler
+);
+router.put(
+  "/products/:productId",
+  uploadProductImage,
+  validateParams(productIdParamSchema),
+  validateBody(productUpdateSchema),
+  updateProductHandler
+);
+router.patch(
+  "/products/:productId/availability",
+  validateParams(productIdParamSchema),
+  validateBody(toggleProductSchema),
+  toggleProductHandler
+);
+router.post(
+  "/products/:productId/toggle",
+  validateParams(productIdParamSchema),
+  validateBody(toggleProductSchema),
+  toggleProductHandler
+);
+router.delete("/products/:productId", validateParams(productIdParamSchema), deleteProductHandler);
 
 // news
 router.get("/news", listNewsHandler);
 router.post("/news", uploadNewsImage, createNewsHandler);
-router.put("/news/:newsId", uploadNewsImage, updateNewsHandler);
-router.delete("/news/:newsId", deleteNewsHandler);
+router.put("/news/:newsId", uploadNewsImage, validateParams(newsIdParamSchema), updateNewsHandler);
+router.delete("/news/:newsId", validateParams(newsIdParamSchema), deleteNewsHandler);
 
 router.get("/product-options", listProductOptionsHandler);
 router.post("/product-options", createProductOptionHandler);
-router.put("/product-options/:optionId", updateProductOptionHandler);
-router.patch("/product-options/:optionId/availability", toggleProductOptionAvailabilityHandler);
-router.delete("/product-options/:optionId", deleteProductOptionHandler);
+router.put(
+  "/product-options/:optionId",
+  validateParams(optionIdParamSchema),
+  updateProductOptionHandler
+);
+router.patch(
+  "/product-options/:optionId/availability",
+  validateParams(optionIdParamSchema),
+  toggleProductOptionAvailabilityHandler
+);
+router.delete(
+  "/product-options/:optionId",
+  validateParams(optionIdParamSchema),
+  deleteProductOptionHandler
+);
 
 // orders
 router.get("/orders", listOrdersHandler);
 router.get("/payments", listPaymentsHandler);
-router.patch("/payments/:paymentId/status", updatePaymentStatusHandler);
-router.post("/orders/:orderId/assign", assignOrderHandler);
-router.patch("/orders/:orderId/status", updateOrderStatusHandler);
-router.post("/orders/:orderId/refund", refundOrderHandler);
+router.patch(
+  "/payments/:paymentId/status",
+  validateParams(paymentIdParamSchema),
+  validateBody(paymentStatusSchema),
+  updatePaymentStatusHandler
+);
+router.post(
+  "/orders/:orderId/assign",
+  validateParams(orderIdParamSchema),
+  validateBody(assignOrderSchema),
+  assignOrderHandler
+);
+router.patch(
+  "/orders/:orderId/status",
+  validateParams(orderIdParamSchema),
+  validateBody(orderStatusSchema),
+  updateOrderStatusHandler
+);
+router.post("/orders/:orderId/refund", validateParams(orderIdParamSchema), refundOrderHandler);
 
 // promotions
 router.get("/promotions", listPromotionsHandler);
-router.post("/promotions", createPromotionHandler);
-router.put("/promotions/:promoId", updatePromotionHandler);
+router.post("/promotions", validateBody(promotionBaseSchema), createPromotionHandler);
+router.put(
+  "/promotions/:promoId",
+  validateParams(promoIdParamSchema),
+  validateBody(promotionUpdateSchema),
+  updatePromotionHandler
+);
 router.post("/promotions/:promoId/toggle", togglePromotionHandler);
 
 // system settings & logs
@@ -137,7 +227,7 @@ router.get("/logs", listLogsHandler);
 
 // inventory
 router.get("/inventory", listInventoryHandler);
-router.post("/inventory", upsertInventoryHandler);
+router.post("/inventory", validateBody(inventoryUpsertSchema), upsertInventoryHandler);
 
 // backups
 router.get("/backups", listBackupsHandler);
