@@ -68,7 +68,7 @@ const computeState = (bucket, now, windowMs) => {
     return { blocked: false, requiresCaptcha: false, retryAfterSeconds: 0, failCount: 0 };
   }
 
-  const requiresCaptcha = !CAPTCHA_DISABLED && CAPTCHA_THRESHOLD > 0 && failCount >= CAPTCHA_THRESHOLD;
+  const requiresCaptcha = !CAPTCHA_DISABLED && (CAPTCHA_THRESHOLD <= 0 || failCount >= CAPTCHA_THRESHOLD);
   const blocked = failCount >= DEFAULT_MAX_FAILED_ATTEMPTS;
   const retryAfterMs = Math.max(0, windowMs - (now - firstFailureAt));
 
