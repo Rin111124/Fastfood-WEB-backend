@@ -7,13 +7,7 @@ const { User, sequelize } = db;
 const DEFAULT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
 const TOKEN_ISSUER = process.env.JWT_ISSUER || 'fatfood-api';
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
-const MIN_PASSWORD_LENGTH = Number(process.env.MIN_PASSWORD_LENGTH || 12);
-const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).+$/;
-const COMMON_WEAK_PASSWORDS = new Set(
-  ["123456", "12345678", "password", "qwerty", "abc123", "111111", "letmein", "welcome", "iloveyou"].map((p) =>
-    p.toLowerCase()
-  )
-);
+const MIN_PASSWORD_LENGTH = Number(process.env.MIN_PASSWORD_LENGTH || 8);
 
 const getModelRoles = () => {
   const values = User?.rawAttributes?.role?.values;
@@ -151,19 +145,6 @@ const ensurePassword = (password) => {
   }
   if (trimmed.length > 255) {
     throw new AuthError('Mat khau khong duoc vuot qua 255 ky tu', 422, 'PASSWORD_TOO_LONG');
-  }
-  if (!PASSWORD_COMPLEXITY_REGEX.test(trimmed)) {
-    throw new AuthError(
-      'Mat khau phai co chu hoa, chu thuong, so va ky tu dac biet',
-      422,
-      'PASSWORD_WEAK'
-    );
-  }
-  if (/(.)\1{3,}/.test(trimmed)) {
-    throw new AuthError('Mat khau khong duoc lap lai 1 ky tu qua 4 lan lien tiep', 422, 'PASSWORD_PATTERN');
-  }
-  if (COMMON_WEAK_PASSWORDS.has(trimmed.toLowerCase())) {
-    throw new AuthError('Mat khau qua pho bien, vui long chon mat khau khac', 422, 'PASSWORD_COMMON');
   }
   return trimmed;
 };
