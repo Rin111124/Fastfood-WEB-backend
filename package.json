@@ -17,17 +17,18 @@
     "dotenv": "^8.2.0",
     "ejs": "^3.1.10",
     "express": "^4.21.2",
+    "express-rate-limit": "^6.11.2",
     "express-session": "^1.18.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
-    "nodemailer": "^6.9.15",
     "mysql2": "^3.15.3",
     "node-fetch": "^2.7.0",
-    "zod": "^3.23.8",
+    "nodemailer": "^6.9.15",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
     "socket.io": "^4.7.5",
-    "stripe": "^19.3.0"
+    "stripe": "^19.3.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@babel/core": "^7.28.4",
