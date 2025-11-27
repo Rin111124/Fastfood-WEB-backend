@@ -465,6 +465,17 @@ const login = async ({ identifier, username, email, password }) => {
     });
   }
 
+  if (!user.email_verified_at) {
+    throw new AuthError(
+      'Tai khoan chua duoc xac thuc email. Vui long kiem tra hop thu de kich hoat.',
+      403,
+      'EMAIL_NOT_VERIFIED',
+      {
+        email: 'Email chua duoc xac thuc'
+      }
+    );
+  }
+
   if (user.status && user.status !== 'active') {
     throw new AuthError(
       user.status === 'locked'
@@ -526,7 +537,10 @@ const register = async (payload) => {
     }, { transaction });
   });
 
-  return issueAuthResponse(newUser);
+  return {
+    user: sanitizeUser(newUser),
+    requiresEmailVerification: true
+  };
 };
 
 const verifyAccessToken = (token) => {

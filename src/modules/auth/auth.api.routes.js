@@ -1,5 +1,12 @@
 import express from "express";
-import { loginHandler, signupHandler, forgotPasswordHandler, resetPasswordHandler } from "./auth.controller.js";
+import {
+  loginHandler,
+  signupHandler,
+  forgotPasswordHandler,
+  resetPasswordHandler,
+  resendVerificationHandler,
+  verifyEmailHandler
+} from "./auth.controller.js";
 import loginRateLimiter from "../../middleware/loginRateLimiter.js";
 import { verifyCaptchaToken } from "../../utils/captcha.js";
 
@@ -32,5 +39,7 @@ router.post("/signup", requireCaptcha, signupHandler);
 router.post("/login", requireCaptcha, loginRateLimiter, loginHandler);
 router.post("/forgot-password", forgotPasswordHandler);
 router.post("/reset-password", resetPasswordHandler);
+router.post("/verify-email", verifyEmailHandler);
+router.post("/resend-verification", resendVerificationHandler);
 
 export default router;

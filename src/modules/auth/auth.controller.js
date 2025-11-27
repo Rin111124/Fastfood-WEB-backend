@@ -1,5 +1,6 @@
 import { AuthError, login, register } from './auth.service.js';
 import { requestPasswordReset, resetPasswordWithToken } from "./passwordReset.service.js";
+import { requestEmailVerification, verifyEmailWithToken } from "./emailVerification.service.js";
 
 const respondIfRateLimited = (res, limiterState) => {
   if (!limiterState || !limiterState.blocked) return false;
@@ -66,10 +67,20 @@ const loginHandler = async (req, res) => {
 const signupHandler = async (req, res) => {
   try {
     const data = await register(req.body || {});
+    const verification = await requestEmailVerification({
+      userId: data?.user?.user_id,
+      identifier: data?.user?.email,
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
 
     return res.status(201).json({
       success: true,
-      data
+      message: "Dang ky thanh cong. Vui long kiem tra email de xac thuc tai khoan.",
+      data: {
+        ...data,
+        emailVerification: verification
+      }
     });
   } catch (error) {
     const statusCode = error instanceof AuthError ? error.statusCode : 500;
@@ -150,9 +161,76 @@ const resetPasswordHandler = async (req, res) => {
   }
 };
 
+const resendVerificationHandler = async (req, res) => {
+  try {
+    const { identifier, email, username } = req.body || {};
+    const rawIdentifier = identifier || email || username;
+    const result = await requestEmailVerification({
+      identifier: rawIdentifier,
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: result.alreadyVerified
+        ? "Email da duoc xac thuc"
+        : "Neu thong tin hop le, email xac thuc da duoc gui",
+      data: result
+    });
+  } catch (error) {
+    const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    if (statusCode === 429 && error?.errors?.retryAfterSeconds) {
+      res.set("Retry-After", String(error.errors.retryAfterSeconds));
+    }
+    return res.status(statusCode).json({
+      success: false,
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message: error instanceof AuthError ? error.message : "Khong the gui email xac thuc",
+      ...(error?.errors ? { errors: error.errors } : {}),
+      ...(statusCode === 429 && error?.errors?.retryAfterSeconds
+        ? { retryAfterSeconds: error.errors.retryAfterSeconds }
+        : {}),
+      ...(statusCode >= 500 && process.env.NODE_ENV === "development"
+        ? { detail: error.message }
+        : {})
+    });
+  }
+};
+
+const verifyEmailHandler = async (req, res) => {
+  try {
+    const token = req.body?.token || req.query?.token;
+    const result = await verifyEmailWithToken({
+      token,
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Xac thuc email thanh cong",
+      data: result
+    });
+  } catch (error) {
+    const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    return res.status(statusCode).json({
+      success: false,
+      code: error.code || "INTERNAL_SERVER_ERROR",
+      message: error instanceof AuthError ? error.message : "Khong the xac thuc email",
+      ...(error?.errors ? { errors: error.errors } : {}),
+      ...(statusCode >= 500 && process.env.NODE_ENV === "development"
+        ? { detail: error.message }
+        : {})
+    });
+  }
+};
+
 export {
   loginHandler,
   signupHandler,
   forgotPasswordHandler,
-  resetPasswordHandler
+  resetPasswordHandler,
+  resendVerificationHandler,
+  verifyEmailHandler
 };
