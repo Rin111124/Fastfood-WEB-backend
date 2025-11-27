@@ -7,24 +7,25 @@ import session from "express-session";
 import path from "path";
 import fs from "fs";
 import net from "net";
+import rateLimit from "express-rate-limit";
 import { fileURLToPath } from "url";
 import connectDB from "./config/connectDB.js";
 import initApiRoutes from "./routes/api/index.js";
 import initWebRoutes from "./routes/web/index.js";
 import { UPLOAD_ROOT } from "./middleware/uploadMiddleware.js";
 import { initSocket } from "./realtime/io.js";
-import gatewayGuard from "./middleware/gatewayGuard.js";
 
 const app = express();
-// Trust the first proxy (Railway/Render/Heroku) so the app sees real client IPs
+// Trust the first proxy (Railway/Render/Heroku) so rate limiting keys use the real client IP
 app.set("trust proxy", 1);
-app.disable("x-powered-by");
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const NODE_ENV = process.env.NODE_ENV || "development";
-const isProd = NODE_ENV === "production" || Boolean(process.env.RAILWAY_ENVIRONMENT);
+const toPositiveInt = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
 
 const resolvePort = (value, defaultPort = 3000) => {
   const parsed = Number(value);
@@ -108,28 +109,13 @@ const normalizeOrigin = (origin) => {
 };
 
 const allowedOrigins = buildAllowedOrigins();
-const allowAllInDev = !isProd;
-
-// Baseline security headers (keep API responses hard to abuse)
-app.use((req, res, next) => {
-  res.set("X-Frame-Options", "DENY");
-  res.set("X-Content-Type-Options", "nosniff");
-  res.set("Referrer-Policy", "no-referrer");
-  res.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  if (isProd) {
-    res.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-  }
-  next();
-});
+const allowAllInDev = (process.env.NODE_ENV || "development") !== "production";
 
 const corsOptions = {
   origin: (origin, callback) => {
     // Allow all if CLIENT_ORIGINS contains '*'
     const clientOrigins = process.env.CLIENT_ORIGINS || process.env.CLIENT_ORIGIN || "";
-    console.log(`🔍 CORS check - Origin: ${origin}, CLIENT_ORIGINS: ${clientOrigins}`);
-    
     if (clientOrigins.includes('*')) {
-      console.log('✅ CORS: Allowing all origins (wildcard)');
       return callback(null, true);
     }
 
@@ -139,10 +125,9 @@ const corsOptions = {
       !allowedOrigins.size ||
       allowedOrigins.has(normalizeOrigin(origin))
     ) {
-      console.log('✅ CORS: Allowed');
       return callback(null, true);
     }
-    console.warn(`❌ Blocked CORS request from origin: ${origin}`);
+    console.warn(`Blocked CORS request from origin: ${origin}`);
     return callback(new Error("Not allowed by CORS"));
   },
   credentials: true
@@ -151,8 +136,30 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options("*", cors(corsOptions));
 
-// Enforce shared secret from gateway (no-op when not configured)
-app.use(gatewayGuard());
+// Native rate limiting (backend-only, replaces local Kong limiter)
+const rateLimitMessage = {
+  success: false,
+  code: "RATE_LIMITED",
+  message: "Too many requests. Please try again later."
+};
+
+const perMinuteLimiter = rateLimit({
+  windowMs: toPositiveInt(process.env.RATE_LIMIT_WINDOW_MINUTE_MS, 60_000),
+  max: toPositiveInt(process.env.RATE_LIMIT_MAX_PER_MINUTE, 5),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage
+});
+
+const perHourLimiter = rateLimit({
+  windowMs: toPositiveInt(process.env.RATE_LIMIT_WINDOW_HOUR_MS, 60 * 60 * 1000),
+  max: toPositiveInt(process.env.RATE_LIMIT_MAX_PER_HOUR, 60),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: rateLimitMessage
+});
+
+app.use("/api", perMinuteLimiter, perHourLimiter);
 
 // Body parsing
 app.use(
@@ -171,12 +178,8 @@ app.use(
     secret: process.env.SESSION_SECRET || "fatfood-secret",
     resave: false,
     saveUninitialized: false,
-    name: "sid",
-    proxy: true,
     cookie: {
       httpOnly: true,
-      secure: isProd,
-      sameSite: "lax",
       maxAge: Number(process.env.SESSION_MAX_AGE || 1000 * 60 * 60 * 4)
     }
   })
@@ -203,7 +206,7 @@ app.get("/", (req, res) => {
 
 const maybeServeFrontend = () => {
   // Skip frontend serving in production/Railway environment
-  if (isProd) {
+  if (process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT) {
     console.log('Skipping frontend serving in production environment');
     return;
   }

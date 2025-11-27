@@ -8,6 +8,7 @@ const DEFAULT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
 const TOKEN_ISSUER = process.env.JWT_ISSUER || 'fatfood-api';
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 10);
 const MIN_PASSWORD_LENGTH = Number(process.env.MIN_PASSWORD_LENGTH || 8);
+const PASSWORD_COMPLEXITY_REGEX = /^(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).+$/;
 
 const getModelRoles = () => {
   const values = User?.rawAttributes?.role?.values;
@@ -145,6 +146,13 @@ const ensurePassword = (password) => {
   }
   if (trimmed.length > 255) {
     throw new AuthError('Mat khau khong duoc vuot qua 255 ky tu', 422, 'PASSWORD_TOO_LONG');
+  }
+  if (!PASSWORD_COMPLEXITY_REGEX.test(trimmed)) {
+    throw new AuthError(
+      'Mat khau phai co it nhat 1 chu hoa, 1 so va 1 ky tu dac biet',
+      422,
+      'PASSWORD_WEAK'
+    );
   }
   return trimmed;
 };
