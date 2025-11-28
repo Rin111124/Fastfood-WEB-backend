@@ -5,15 +5,21 @@
  * DEMO_API_KEY=local-demo-key \
  * DEMO_ATTEMPTS=8 node backend/scripts/bruteforce-login-demo.js
  */
+require("dotenv").config();
 const fetch = require("node-fetch");
 
-const API_URL = process.env.DEMO_API_URL || "http://localhost:8000/api/auth/login";
-const API_KEY = process.env.DEMO_API_KEY || process.env.KONG_CONSUMER_KEY || "";
+const fallbackLocalUrl =
+  process.env.PORT ? `http://localhost:${process.env.PORT}/api/auth/login` : "";
+const API_URL = process.env.DEMO_API_URL || process.env.BACKEND_URL || fallbackLocalUrl || "";
+const API_KEY =
+  process.env.DEMO_API_KEY || process.env.KONG_CONSUMER_KEY || process.env.GATEWAY_SHARED_SECRET || "";
+const CAPTCHA_TOKEN = process.env.DEMO_CAPTCHA_TOKEN || process.env.LOGIN_CAPTCHA_BYPASS_CODE || "";
 const ATTEMPTS = Number(process.env.DEMO_ATTEMPTS || 8);
 
 const payload = {
   identifier: "demo@example.com",
-  password: "wrong-password"
+  password: "wrong-password",
+  ...(CAPTCHA_TOKEN ? { captchaToken: CAPTCHA_TOKEN } : {})
 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

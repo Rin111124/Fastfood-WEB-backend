@@ -2,6 +2,8 @@
 
 import fetch from "node-fetch";
 
+const CAPTCHA_DISABLED =
+  String(process.env.DISABLE_LOGIN_CAPTCHA || process.env.DISABLE_CAPTCHA || "").toLowerCase() === "true";
 const PROVIDER = (process.env.LOGIN_CAPTCHA_PROVIDER || process.env.CAPTCHA_PROVIDER || "recaptcha").toLowerCase();
 const SECRET =
   process.env.LOGIN_CAPTCHA_SECRET ||
@@ -27,6 +29,10 @@ const getVerifyEndpoint = () =>
     : "https://www.google.com/recaptcha/api/siteverify";
 
 const verifyCaptchaToken = async (token, { ip } = {}) => {
+  if (CAPTCHA_DISABLED) {
+    return { ok: true, provider: "disabled", code: "CAPTCHA_DISABLED" };
+  }
+
   if (BYPASS_CODE && token === BYPASS_CODE) {
     return { ok: true, provider: "bypass", code: "CAPTCHA_BYPASS", message: "Captcha bypassed via configured code" };
   }
