@@ -1,4 +1,5 @@
-import { AuthError } from '../modules/auth/auth.service.js';
+import authPkg from '../modules/auth/auth.service.js';
+const { AuthError } = authPkg;
 import { authorizeRequest } from '../modules/auth/authorization.service.js';
 
 const sendError = (res, error) => res.status(error.statusCode || 401).json({
