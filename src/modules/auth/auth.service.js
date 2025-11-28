@@ -491,6 +491,8 @@ const login = async ({ identifier, username, email, password }) => {
   return issueAuthResponse(user);
 };
 
+// Thêm vào phần register function trong auth.service.js
+
 const register = async (payload) => {
   const {
     username: normalizedUsername,
@@ -513,6 +515,41 @@ const register = async (payload) => {
   });
 
   if (existingUser) {
+    // ✅ KIỂM TRA: Nếu user đã tồn tại NHƯNG CHƯA VERIFY EMAIL
+    if (!existingUser.email_verified_at) {
+      console.log('[register] User exists but email not verified, sending new verification email');
+
+      // Gửi lại email verification
+      const emailVerification = await requestEmailVerification({
+        userId: existingUser.user_id,
+        ip: payload.ip,
+        userAgent: payload.userAgent
+      });
+
+      // ✅ TRẢ VỀ STATUS 409 NHƯNG BAO GỒM THÔNG TIN VERIFICATION
+      const error = new AuthError(
+        'Tai khoan da ton tai nhung chua duoc xac thuc. Email xac thuc da duoc gui lai.',
+        409,
+        'EMAIL_NOT_VERIFIED',
+        {
+          email: existingUser.email === normalizedEmail
+            ? 'Email da duoc su dung nhung chua xac thuc'
+            : undefined,
+          username: existingUser.username === normalizedUsername
+            ? 'Ten dang nhap da ton tai nhung chua xac thuc'
+            : undefined
+        }
+      );
+
+      // ✅ QUAN TRỌNG: Thêm thông tin verification vào error object
+      error.requiresVerification = true;
+      error.user = sanitizeUser(existingUser);
+      error.emailVerification = emailVerification;
+
+      throw error;
+    }
+
+    // User đã tồn tại VÀ đã verify - lỗi thông thường
     if (existingUser.username === normalizedUsername) {
       throw new AuthError('Ten dang nhap da ton tai', 409, 'USERNAME_TAKEN', {
         username: 'Ten dang nhap da ton tai'
@@ -523,6 +560,7 @@ const register = async (payload) => {
     });
   }
 
+  // Tạo user mới như bình thường
   const hashedPassword = await bcrypt.hash(sanitizedPassword, SALT_ROUNDS);
 
   const newUser = await sequelize.transaction(async (transaction) => {
