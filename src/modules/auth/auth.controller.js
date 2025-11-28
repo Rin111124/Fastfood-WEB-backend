@@ -1,4 +1,5 @@
-import { AuthError, login, register } from './auth.service.js';
+import authPkg from './auth.service.js';
+const { AuthError, login, register } = authPkg;
 import { requestPasswordReset, resetPasswordWithToken } from "./passwordReset.service.js";
 import { requestEmailVerification, verifyEmailWithToken } from "./emailVerification.service.js";
 
@@ -265,3 +266,4 @@ export {
   resendVerificationHandler,
   verifyEmailHandler
 };
+

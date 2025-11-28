@@ -3,7 +3,8 @@
 import crypto from "crypto";
 import { Op } from "sequelize";
 import db from "../../models/index.js";
-import { AuthError, resolveIdentifierQuery, sanitizeUser } from "./auth.service.js";
+import authPkg from "./auth.service.js";
+const { AuthError, resolveIdentifierQuery, sanitizeUser } = authPkg;
 import { sendMail } from "../../utils/email.js";
 
 const { User, EmailVerificationToken, sequelize } = db;
@@ -71,10 +72,9 @@ const sendVerificationEmail = async ({ user, token, verifyUrl, expiresAt }) => {
   const html = `
     <p>Xin chao ${user.full_name || user.username},</p>
     <p>Cam on ban da dang ky tai Fastfood. Vui long xac thuc email de kich hoat tai khoan.</p>
-    <p>${
-      verifyUrl
-        ? `Hay nhan vao <a href="${verifyUrl}">lien ket nay</a> de xac thuc (${expirationText}).`
-        : `Su dung ma sau de xac thuc (${expirationText}): <strong>${token}</strong>.`
+    <p>${verifyUrl
+      ? `Hay nhan vao <a href="${verifyUrl}">lien ket nay</a> de xac thuc (${expirationText}).`
+      : `Su dung ma sau de xac thuc (${expirationText}): <strong>${token}</strong>.`
     }</p>
     <p>Neu ban khong tao tai khoan, hay bo qua email nay.</p>
   `;

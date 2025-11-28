@@ -1,6 +1,7 @@
 "use strict";
 
-import { login } from "./auth.service.js";
+import authPkg from "./auth.service.js";
+const { login } = authPkg;
 
 const redirectByRole = (role) => {
   switch (role) {

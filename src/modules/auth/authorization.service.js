@@ -1,4 +1,5 @@
-import { AuthError, verifyAccessToken } from './auth.service.js';
+import authPkg from './auth.service.js';
+const { AuthError, verifyAccessToken } = authPkg;
 
 const extractBearerToken = (authorizationHeader) => {
   if (!authorizationHeader || typeof authorizationHeader !== 'string') {

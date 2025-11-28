@@ -4,7 +4,8 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Op } from "sequelize";
 import db from "../../models/index.js";
-import { AuthError, ensurePassword, resolveIdentifierQuery, sanitizeUser } from "./auth.service.js";
+import authPkg from "./auth.service.js";
+const { AuthError, ensurePassword, resolveIdentifierQuery, sanitizeUser } = authPkg;
 import { sendMail } from "../../utils/email.js";
 
 const { User, PasswordResetToken, sequelize } = db;
@@ -73,10 +74,9 @@ const sendResetEmail = async ({ user, token, resetUrl, expiresAt }) => {
   const html = `
     <p>Xin chao ${user.full_name || user.username},</p>
     <p>Chung toi nhan duoc yeu cau thay doi mat khau cho tai khoan cua ban.</p>
-    <p>${
-      resetUrl
-        ? `Hay nhan vao <a href="${resetUrl}">lien ket nay</a> de dat lai mat khau (${expirationText}).`
-        : `Hay su dung ma token sau de dat lai mat khau (${expirationText}): <strong>${token}</strong>.`
+    <p>${resetUrl
+      ? `Hay nhan vao <a href="${resetUrl}">lien ket nay</a> de dat lai mat khau (${expirationText}).`
+      : `Hay su dung ma token sau de dat lai mat khau (${expirationText}): <strong>${token}</strong>.`
     }</p>
     <p>Neu ban khong yeu cau, hay bo qua email nay.</p>
   `;
