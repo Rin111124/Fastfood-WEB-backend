@@ -70,13 +70,6 @@ plugins:
     config:
       # Require API key on real requests; let OPTIONS through (skip auth on preflight)
       run_on_preflight: false
-  - name: acl
-    service: backend
-    config:
-      allow:
-        - trusted-clients
-      # Skip ACL check on preflight OPTIONS
-      run_on_preflight: false
   - name: rate-limiting
     service: backend
     config:
@@ -119,5 +112,3 @@ consumers:
   - username: local-tester
     keyauth_credentials:
       - key: ${KONG_CONSUMER_KEY}
-    acls:
-      - group: trusted-clients
