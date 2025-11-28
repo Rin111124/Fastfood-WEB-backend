@@ -546,6 +546,7 @@ const register = async (payload) => {
 
   return {
     user: sanitizeUser(newUser),
+    requiresEmailVerification: true,
     emailVerification
   };
 };
