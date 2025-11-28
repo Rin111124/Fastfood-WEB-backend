@@ -68,15 +68,13 @@ plugins:
   - name: key-auth
     service: backend
     config:
-      # Require API key on real requests; let OPTIONS through via anonymous consumer
+      # Require API key on real requests; let OPTIONS through (skip auth on preflight)
       run_on_preflight: false
-      anonymous: anonymous-preflight
   - name: acl
     service: backend
     config:
       allow:
         - trusted-clients
-      anonymous: anonymous-preflight
   - name: rate-limiting
     service: backend
     config:
@@ -119,8 +117,5 @@ consumers:
   - username: local-tester
     keyauth_credentials:
       - key: ${KONG_CONSUMER_KEY}
-    acls:
-      - group: trusted-clients
-  - username: anonymous-preflight
     acls:
       - group: trusted-clients
