@@ -199,10 +199,27 @@ const getDashboardMetrics = async () => {
 };
 
 const listUsers = async () => {
-  return User.findAll({
+  const users = await User.findAll({
     attributes: { exclude: ["password"] },
     order: [["created_at", "DESC"]],
     paranoid: false
+  });
+
+  return users.map((user) => {
+    const plain = user.get({ plain: true });
+    if (plain.createdAt !== undefined) {
+      plain.created_at = plain.createdAt;
+      delete plain.createdAt;
+    }
+    if (plain.updatedAt !== undefined) {
+      plain.updated_at = plain.updatedAt;
+      delete plain.updatedAt;
+    }
+    if (plain.deletedAt !== undefined) {
+      plain.deleted_at = plain.deletedAt;
+      delete plain.deletedAt;
+    }
+    return plain;
   });
 };
 
