@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import db from '../../models/index.js';
+import { requestEmailVerification } from './emailVerification.service.js';
 
 const { User, sequelize } = db;
 const DEFAULT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
@@ -537,9 +538,15 @@ const register = async (payload) => {
     }, { transaction });
   });
 
+  const emailVerification = await requestEmailVerification({
+    userId: newUser.user_id,
+    ip: payload.ip,
+    userAgent: payload.userAgent
+  });
+
   return {
     user: sanitizeUser(newUser),
-    requiresEmailVerification: true
+    emailVerification
   };
 };
 

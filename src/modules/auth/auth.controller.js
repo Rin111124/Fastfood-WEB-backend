@@ -66,10 +66,8 @@ const loginHandler = async (req, res) => {
 
 const signupHandler = async (req, res) => {
   try {
-    const data = await register(req.body || {});
-    const verification = await requestEmailVerification({
-      userId: data?.user?.user_id,
-      identifier: data?.user?.email,
+    const data = await register({
+      ...req.body,
       ip: req.ip,
       userAgent: req.get("user-agent")
     });
@@ -77,10 +75,7 @@ const signupHandler = async (req, res) => {
     return res.status(201).json({
       success: true,
       message: "Dang ky thanh cong. Vui long kiem tra email de xac thuc tai khoan.",
-      data: {
-        ...data,
-        emailVerification: verification
-      }
+      data
     });
   } catch (error) {
     const statusCode = error instanceof AuthError ? error.statusCode : 500;
