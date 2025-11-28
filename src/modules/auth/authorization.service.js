@@ -1,14 +1,13 @@
-import authPkg from './auth.service.js';
-const { AuthError, verifyAccessToken } = authPkg;
+import * as authService from './auth.service.js';
 
 const extractBearerToken = (authorizationHeader) => {
   if (!authorizationHeader || typeof authorizationHeader !== 'string') {
-    throw new AuthError('Thieu header Authorization', 401, 'AUTH_HEADER_REQUIRED');
+    throw new authService.AuthError('Thieu header Authorization', 401, 'AUTH_HEADER_REQUIRED');
   }
 
   const [scheme, token] = authorizationHeader.split(' ');
   if (scheme !== 'Bearer' || !token) {
-    throw new AuthError('Dinh dang Authorization khong hop le', 401, 'INVALID_AUTH_HEADER');
+    throw new authService.AuthError('Dinh dang Authorization khong hop le', 401, 'INVALID_AUTH_HEADER');
   }
 
   return token.trim();
@@ -17,12 +16,12 @@ const extractBearerToken = (authorizationHeader) => {
 const ensureRoleAllowed = (role, allowedRoles = []) => {
   if (!allowedRoles.length) return true;
   if (allowedRoles.includes(role)) return true;
-  throw new AuthError('Ban khong co quyen truy cap tai nguyen nay', 403, 'FORBIDDEN');
+  throw new authService.AuthError('Ban khong co quyen truy cap tai nguyen nay', 403, 'FORBIDDEN');
 };
 
 const authorizeRequest = ({ authorizationHeader, allowedRoles = [] }) => {
   const token = extractBearerToken(authorizationHeader);
-  const payload = verifyAccessToken(token);
+  const payload = authService.verifyAccessToken(token);
   const normalizedPayload = {
     ...payload,
     user_id: payload?.user_id ?? payload?.sub

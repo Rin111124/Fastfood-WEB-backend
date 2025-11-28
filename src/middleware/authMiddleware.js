@@ -1,5 +1,4 @@
-import authPkg from '../modules/auth/auth.service.js';
-const { AuthError } = authPkg;
+import * as authService from '../modules/auth/auth.service.js';
 import { authorizeRequest } from '../modules/auth/authorization.service.js';
 
 const sendError = (res, error) => res.status(error.statusCode || 401).json({
@@ -16,7 +15,7 @@ const authenticate = (req, res, next) => {
     req.auth = payload;
     return next();
   } catch (error) {
-    return sendError(res, error instanceof AuthError ? error : new AuthError('Khong the xac thuc nguoi dung', 401));
+    return sendError(res, error instanceof authService.AuthError ? error : new authService.AuthError('Khong the xac thuc nguoi dung', 401));
   }
 };
 
@@ -29,7 +28,7 @@ const requireRoles = (...roles) => (req, res, next) => {
     req.auth = payload;
     return next();
   } catch (error) {
-    return sendError(res, error instanceof AuthError ? error : new AuthError('Ban khong co quyen truy cap', 403));
+    return sendError(res, error instanceof authService.AuthError ? error : new authService.AuthError('Ban khong co quyen truy cap', 403));
   }
 };
 

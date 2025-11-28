@@ -1,7 +1,6 @@
 "use strict";
 
-import authPkg from "./auth.service.js";
-const { login } = authPkg;
+import * as authService from "./auth.service.js";
 
 const redirectByRole = (role) => {
   switch (role) {
@@ -43,7 +42,7 @@ const handleRateLimitRedirect = (req, limiterState) => {
 const postLogin = async (req, res) => {
   try {
     const { identifier, username, email, password } = req.body || {};
-    const { user, accessToken } = await login({ identifier, username, email, password });
+    const { user, accessToken } = await authService.login({ identifier, username, email, password });
 
     if (req.session) {
       req.session.user = user;

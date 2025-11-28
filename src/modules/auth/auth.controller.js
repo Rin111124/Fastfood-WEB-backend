@@ -1,5 +1,4 @@
-import authPkg from './auth.service.js';
-const { AuthError, login, register } = authPkg;
+import * as authService from './auth.service.js';
 import { requestPasswordReset, resetPasswordWithToken } from "./passwordReset.service.js";
 import { requestEmailVerification, verifyEmailWithToken } from "./emailVerification.service.js";
 
@@ -28,7 +27,7 @@ const respondIfRateLimited = (res, limiterState) => {
 const loginHandler = async (req, res) => {
   try {
     const { identifier, username, email, password } = req.body || {};
-    const data = await login({ identifier, username, email, password });
+    const data = await authService.login({ identifier, username, email, password });
 
     if (res.locals?.loginSecurity?.markSuccess) {
       res.locals.loginSecurity.markSuccess();
@@ -39,9 +38,9 @@ const loginHandler = async (req, res) => {
       data
     });
   } catch (error) {
-    const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    const statusCode = error instanceof authService.AuthError ? error.statusCode : 500;
     const isInvalidCredentials =
-      error instanceof AuthError &&
+      error instanceof authService.AuthError &&
       (error.code === "INVALID_CREDENTIALS" || statusCode === 401);
     let limiterState = null;
 
@@ -55,7 +54,7 @@ const loginHandler = async (req, res) => {
     return res.status(statusCode).json({
       success: false,
       code: error.code || 'INTERNAL_SERVER_ERROR',
-      message: error instanceof AuthError ? error.message : 'Dang nhap that bai',
+      message: error instanceof authService.AuthError ? error.message : 'Dang nhap that bai',
       ...(error?.errors ? { errors: error.errors } : {}),
       ...(limiterState?.requiresCaptcha ? { requireCaptcha: true } : {}),
       ...(statusCode >= 500 && process.env.NODE_ENV === 'development'
@@ -69,7 +68,7 @@ const signupHandler = async (req, res) => {
   try {
     console.log('[signupHandler] Processing signup request');
 
-    const data = await register({
+    const data = await authService.register({
       ...req.body,
       ip: req.ip,
       userAgent: req.get("user-agent")
@@ -93,7 +92,7 @@ const signupHandler = async (req, res) => {
       hasEmailVerification: !!error.emailVerification
     });
 
-    const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    const statusCode = error instanceof authService.AuthError ? error.statusCode : 500;
 
     // ✅ XỬ LÝ ĐẶC BIỆT: User tồn tại nhưng chưa verify
     if (error.code === 'EMAIL_NOT_VERIFIED' && error.requiresVerification) {
@@ -120,7 +119,7 @@ const signupHandler = async (req, res) => {
     return res.status(statusCode).json({
       success: false,
       code: error.code || 'INTERNAL_SERVER_ERROR',
-      message: error instanceof AuthError ? error.message : 'Dang ky that bai',
+      message: error instanceof authService.AuthError ? error.message : 'Dang ky that bai',
       ...(error?.errors ? { errors: error.errors } : {}),
       ...(statusCode >= 500 && process.env.NODE_ENV === 'development'
         ? { detail: error.message }
@@ -146,14 +145,14 @@ const forgotPasswordHandler = async (req, res) => {
       ...(process.env.NODE_ENV === "development" ? { token: result.token, resetUrl: result.resetUrl } : {})
     });
   } catch (error) {
-    const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    const statusCode = error instanceof authService.AuthError ? error.statusCode : 500;
     if (statusCode === 429 && error?.errors?.retryAfterSeconds) {
       res.set("Retry-After", String(error.errors.retryAfterSeconds));
     }
     return res.status(statusCode).json({
       success: false,
       code: error.code || "INTERNAL_SERVER_ERROR",
-      message: error instanceof AuthError ? error.message : "Khong the gui email khoi phuc",
+      message: error instanceof authService.AuthError ? error.message : "Khong the gui email khoi phuc",
       ...(error?.errors ? { errors: error.errors } : {}),
       ...(statusCode === 429 && error?.errors?.retryAfterSeconds
         ? { retryAfterSeconds: error.errors.retryAfterSeconds }
@@ -180,11 +179,11 @@ const resetPasswordHandler = async (req, res) => {
       message: "Dat lai mat khau thanh cong"
     });
   } catch (error) {
-    const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    const statusCode = error instanceof authService.AuthError ? error.statusCode : 500;
     return res.status(statusCode).json({
       success: false,
       code: error.code || "INTERNAL_SERVER_ERROR",
-      message: error instanceof AuthError ? error.message : "Khong the dat lai mat khau",
+      message: error instanceof authService.AuthError ? error.message : "Khong the dat lai mat khau",
       ...(error?.errors ? { errors: error.errors } : {}),
       ...(statusCode >= 500 && process.env.NODE_ENV === "development"
         ? { detail: error.message }
@@ -211,14 +210,14 @@ const resendVerificationHandler = async (req, res) => {
       data: result
     });
   } catch (error) {
-    const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    const statusCode = error instanceof authService.AuthError ? error.statusCode : 500;
     if (statusCode === 429 && error?.errors?.retryAfterSeconds) {
       res.set("Retry-After", String(error.errors.retryAfterSeconds));
     }
     return res.status(statusCode).json({
       success: false,
       code: error.code || "INTERNAL_SERVER_ERROR",
-      message: error instanceof AuthError ? error.message : "Khong the gui email xac thuc",
+      message: error instanceof authService.AuthError ? error.message : "Khong the gui email xac thuc",
       ...(error?.errors ? { errors: error.errors } : {}),
       ...(statusCode === 429 && error?.errors?.retryAfterSeconds
         ? { retryAfterSeconds: error.errors.retryAfterSeconds }
@@ -245,11 +244,11 @@ const verifyEmailHandler = async (req, res) => {
       data: result
     });
   } catch (error) {
-    const statusCode = error instanceof AuthError ? error.statusCode : 500;
+    const statusCode = error instanceof authService.AuthError ? error.statusCode : 500;
     return res.status(statusCode).json({
       success: false,
       code: error.code || "INTERNAL_SERVER_ERROR",
-      message: error instanceof AuthError ? error.message : "Khong the xac thuc email",
+      message: error instanceof authService.AuthError ? error.message : "Khong the xac thuc email",
       ...(error?.errors ? { errors: error.errors } : {}),
       ...(statusCode >= 500 && process.env.NODE_ENV === "development"
         ? { detail: error.message }
@@ -266,4 +265,3 @@ export {
   resendVerificationHandler,
   verifyEmailHandler
 };
-

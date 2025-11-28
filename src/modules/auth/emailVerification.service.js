@@ -3,8 +3,7 @@
 import crypto from "crypto";
 import { Op } from "sequelize";
 import db from "../../models/index.js";
-import authPkg from "./auth.service.js";
-const { AuthError, resolveIdentifierQuery, sanitizeUser } = authPkg;
+import * as authService from "./auth.service.js";
 import { sendMail } from "../../utils/email.js";
 
 const { User, EmailVerificationToken, sequelize } = db;
@@ -100,10 +99,10 @@ const findTargetUser = async ({ identifier, userId }) => {
 
   const rawIdentifier = typeof identifier === "string" ? identifier.trim() : "";
   if (!rawIdentifier) {
-    throw new AuthError("Vui long nhap email hoac ten dang nhap", 422, "IDENTIFIER_REQUIRED");
+    throw new authService.AuthError("Vui long nhap email hoac ten dang nhap", 422, "IDENTIFIER_REQUIRED");
   }
 
-  const { whereClause } = resolveIdentifierQuery(rawIdentifier);
+  const { whereClause } = authService.resolveIdentifierQuery(rawIdentifier);
   return User.unscoped().findOne({ where: whereClause });
 };
 
@@ -116,13 +115,13 @@ const requestEmailVerification = async ({ identifier, userId, ip, userAgent }) =
   }
 
   if (targetUser.email_verified_at) {
-    return { requested: false, alreadyVerified: true, user: sanitizeUser(targetUser) };
+    return { requested: false, alreadyVerified: true, user: authService.sanitizeUser(targetUser) };
   }
 
   const throttleKey = `${ip || "unknown"}:${(targetUser.email || "").toLowerCase()}`;
   const limitState = checkRequestLimit(throttleKey);
   if (limitState.blocked) {
-    throw new AuthError(
+    throw new authService.AuthError(
       `Ban da yeu cau qua nhieu lan. Vui long thu lai sau ${limitState.retryAfterSeconds} giay`,
       429,
       "VERIFY_RATE_LIMITED",
@@ -171,7 +170,7 @@ const requestEmailVerification = async ({ identifier, userId, ip, userAgent }) =
 const verifyEmailWithToken = async ({ token, ip, userAgent }) => {
   const normalizedToken = typeof token === "string" ? token.trim() : "";
   if (!normalizedToken) {
-    throw new AuthError("Token xac thuc khong hop le", 422, "TOKEN_REQUIRED");
+    throw new authService.AuthError("Token xac thuc khong hop le", 422, "TOKEN_REQUIRED");
   }
 
   const hashedToken = hashToken(normalizedToken);
@@ -183,20 +182,20 @@ const verifyEmailWithToken = async ({ token, ip, userAgent }) => {
   });
 
   if (!verificationRecord) {
-    throw new AuthError("Ma xac thuc khong hop le", 400, "VERIFICATION_TOKEN_INVALID");
+    throw new authService.AuthError("Ma xac thuc khong hop le", 400, "VERIFICATION_TOKEN_INVALID");
   }
 
   if (verificationRecord.used_at) {
-    throw new AuthError("Ma xac thuc da duoc su dung", 400, "VERIFICATION_TOKEN_USED");
+    throw new authService.AuthError("Ma xac thuc da duoc su dung", 400, "VERIFICATION_TOKEN_USED");
   }
 
   if (verificationRecord.expires_at && verificationRecord.expires_at < now) {
-    throw new AuthError("Ma xac thuc da het han", 400, "VERIFICATION_TOKEN_EXPIRED");
+    throw new authService.AuthError("Ma xac thuc da het han", 400, "VERIFICATION_TOKEN_EXPIRED");
   }
 
   const user = await User.unscoped().findByPk(verificationRecord.user_id);
   if (!user) {
-    throw new AuthError("Khong tim thay nguoi dung", 404, "USER_NOT_FOUND");
+    throw new authService.AuthError("Khong tim thay nguoi dung", 404, "USER_NOT_FOUND");
   }
 
   await sequelize.transaction(async (transaction) => {
@@ -226,7 +225,7 @@ const verifyEmailWithToken = async ({ token, ip, userAgent }) => {
     );
   });
 
-  return { verified: true, user: sanitizeUser(user) };
+  return { verified: true, user: authService.sanitizeUser(user) };
 };
 
 export { requestEmailVerification, verifyEmailWithToken };

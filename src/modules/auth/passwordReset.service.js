@@ -4,8 +4,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { Op } from "sequelize";
 import db from "../../models/index.js";
-import authPkg from "./auth.service.js";
-const { AuthError, ensurePassword, resolveIdentifierQuery, sanitizeUser } = authPkg;
+import * as authService from "./auth.service.js";
 import { sendMail } from "../../utils/email.js";
 
 const { User, PasswordResetToken, sequelize } = db;
@@ -97,13 +96,13 @@ const purgeExpiredTokens = async () => {
 const requestPasswordReset = async ({ identifier, ip, userAgent }) => {
   const rawIdentifier = typeof identifier === "string" ? identifier.trim() : "";
   if (!rawIdentifier) {
-    throw new AuthError("Vui long nhap email hoac ten dang nhap", 422, "IDENTIFIER_REQUIRED");
+    throw new authService.AuthError("Vui long nhap email hoac ten dang nhap", 422, "IDENTIFIER_REQUIRED");
   }
 
   const throttleKey = `${ip || "unknown"}:${rawIdentifier.toLowerCase()}`;
   const limitState = checkRequestLimit(throttleKey);
   if (limitState.blocked) {
-    throw new AuthError(
+    throw new authService.AuthError(
       `Ban da yeu cau qua nhieu lan. Vui long thu lai sau ${limitState.retryAfterSeconds} giay`,
       429,
       "RESET_RATE_LIMITED",
@@ -111,7 +110,7 @@ const requestPasswordReset = async ({ identifier, ip, userAgent }) => {
     );
   }
 
-  const { whereClause } = resolveIdentifierQuery(rawIdentifier);
+  const { whereClause } = authService.resolveIdentifierQuery(rawIdentifier);
   const user = await User.unscoped().findOne({ where: whereClause });
 
   // Do not leak user existence
@@ -161,7 +160,7 @@ const requestPasswordReset = async ({ identifier, ip, userAgent }) => {
 const resetPasswordWithToken = async ({ token, password, ip, userAgent }) => {
   const normalizedToken = typeof token === "string" ? token.trim() : "";
   if (!normalizedToken) {
-    throw new AuthError("Token khoi phuc khong hop le", 422, "TOKEN_REQUIRED");
+    throw new authService.AuthError("Token khoi phuc khong hop le", 422, "TOKEN_REQUIRED");
   }
 
   const hashedToken = hashToken(normalizedToken);
@@ -173,23 +172,23 @@ const resetPasswordWithToken = async ({ token, password, ip, userAgent }) => {
   });
 
   if (!resetRecord) {
-    throw new AuthError("Token khoi phuc khong hop le", 400, "TOKEN_INVALID");
+    throw new authService.AuthError("Token khoi phuc khong hop le", 400, "TOKEN_INVALID");
   }
 
   if (resetRecord.used_at) {
-    throw new AuthError("Token khoi phuc da duoc su dung", 400, "TOKEN_USED");
+    throw new authService.AuthError("Token khoi phuc da duoc su dung", 400, "TOKEN_USED");
   }
 
   if (resetRecord.expires_at && resetRecord.expires_at < now) {
-    throw new AuthError("Token khoi phuc da het han", 400, "TOKEN_EXPIRED");
+    throw new authService.AuthError("Token khoi phuc da het han", 400, "TOKEN_EXPIRED");
   }
 
   const user = await User.unscoped().findByPk(resetRecord.user_id);
   if (!user) {
-    throw new AuthError("Khong tim thay nguoi dung", 404, "USER_NOT_FOUND");
+    throw new authService.AuthError("Khong tim thay nguoi dung", 404, "USER_NOT_FOUND");
   }
 
-  const sanitizedPassword = ensurePassword(password);
+  const sanitizedPassword = authService.ensurePassword(password);
   const hashedPassword = await bcrypt.hash(sanitizedPassword, SALT_ROUNDS);
 
   await sequelize.transaction(async (transaction) => {
@@ -217,7 +216,7 @@ const resetPasswordWithToken = async ({ token, password, ip, userAgent }) => {
     );
   });
 
-  return { success: true, user: sanitizeUser(user) };
+  return { success: true, user: authService.sanitizeUser(user) };
 };
 
 export { requestPasswordReset, resetPasswordWithToken };
