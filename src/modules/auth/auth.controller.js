@@ -66,11 +66,15 @@ const loginHandler = async (req, res) => {
 
 const signupHandler = async (req, res) => {
   try {
+    console.log('[signupHandler] Processing signup request');
+
     const data = await register({
       ...req.body,
       ip: req.ip,
       userAgent: req.get("user-agent")
     });
+
+    console.log('[signupHandler] Registration successful, returning 201');
 
     return res.status(201).json({
       success: true,
@@ -78,7 +82,39 @@ const signupHandler = async (req, res) => {
       data
     });
   } catch (error) {
+    console.error('[signupHandler] Error caught:', {
+      name: error.name,
+      message: error.message,
+      code: error.code,
+      statusCode: error.statusCode,
+      requiresVerification: error.requiresVerification,
+      hasUser: !!error.user,
+      hasEmailVerification: !!error.emailVerification
+    });
+
     const statusCode = error instanceof AuthError ? error.statusCode : 500;
+
+    // ✅ XỬ LÝ ĐẶC BIỆT: User tồn tại nhưng chưa verify
+    if (error.code === 'EMAIL_NOT_VERIFIED' && error.requiresVerification) {
+      console.log('[signupHandler] Returning 409 with verification data');
+
+      return res.status(409).json({
+        success: false,
+        code: error.code,
+        message: error.message,
+        requiresVerification: true,
+        // ✅ TRẢ VỀ THÔNG TIN CẦN THIẾT CHO FRONTEND
+        data: {
+          user: error.user,
+          requiresEmailVerification: true,
+          emailVerification: error.emailVerification
+        },
+        ...(error?.errors ? { errors: error.errors } : {})
+      });
+    }
+
+    // ✅ Xử lý các lỗi khác
+    console.log('[signupHandler] Returning error response:', statusCode);
 
     return res.status(statusCode).json({
       success: false,
