@@ -1,0 +1,16 @@
+-- Ready-to-run pgloader job: local MySQL -> Render Postgres
+-- MySQL: host 127.0.0.1:3306, db fast_foodmanagement, user root (put your root password below; root:@ if no password)
+-- Postgres (Render External URL): fastfoodmanagement_k52b / dpg-d4bu44fdiees73dfdvtg-a.oregon-postgres.render.com
+
+LOAD DATABASE
+  FROM mysql://root:@host.docker.internal:3306/fast_foodmanagement
+  INTO postgresql://fastfoodmanagement_k52b_user:f1j06qAq5sYfTXNdKXbnoGhKPF9mrRcF@dpg-d4bu44fdiees73dfdvtg-a.oregon-postgres.render.com:5432/fastfoodmanagement_k52b?sslmode=require
+
+WITH include drop, create tables, create indexes, reset sequences,
+     workers = 4, concurrency = 1, batch rows = 5000,
+     prefetch rows = 20000, on error stop
+
+CAST type datetime to timestamptz using zero-dates-to-null,
+     type date to date using zero-dates-to-null,
+     type tinyint when (= precision 1) to boolean using tinyint-to-boolean;
+

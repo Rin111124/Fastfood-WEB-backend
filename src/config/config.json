@@ -1,11 +1,13 @@
 {
   "development": {
     "use_env_variable": "DATABASE_URL",
-    "dialect": "mysql",
+    "dialect": "postgres",
     "timezone": "+07:00",
     "dialectOptions": {
-      "dateStrings": true,
-      "typeCast": true
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
     },
     "pool": {
       "max": 5,
@@ -16,16 +18,29 @@
   },
   "test": {
     "use_env_variable": "DATABASE_URL",
-    "dialect": "mysql"
+    "dialect": "postgres",
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
+    }
   },
   "production": {
     "use_env_variable": "DATABASE_URL",
-    "dialect": "mysql",
+    "dialect": "postgres",
+    "timezone": "+07:00",
     "pool": {
       "max": 10,
       "min": 0,
       "acquire": 30000,
       "idle": 10000
+    },
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
     }
   }
 }

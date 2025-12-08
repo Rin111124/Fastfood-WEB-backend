@@ -1,0 +1,20 @@
+-- Template: migrate MySQL -> Render PostgreSQL with pgloader
+-- Replace the placeholders below before running.
+
+LOAD DATABASE
+  FROM mysql://MYSQL_USER:MYSQL_PASSWORD@MYSQL_HOST:MYSQL_PORT/MYSQL_DB?charset=utf8mb4
+  INTO postgresql://PG_USER:PG_PASSWORD@PG_HOST:PG_PORT/PG_DB?sslmode=require
+
+WITH include drop, create tables, create indexes, reset sequences,
+     workers = 4, concurrency = 1, batch rows = 5000,
+     prefetch rows = 20000, on error stop
+
+CAST type datetime to timestamptz using zero-dates-to-null,
+     type date to date using zero-dates-to-null,
+     type tinyint when (= precision 1) to boolean using tinyint-to-boolean;
+
+BEFORE LOAD DO
+  $$ set session_replication_role = 'replica'; $$;
+
+AFTER LOAD DO
+  $$ set session_replication_role = 'origin'; $$;

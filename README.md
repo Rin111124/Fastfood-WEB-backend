@@ -12,6 +12,11 @@ npm run dev
 
 The server listens on `http://localhost:3000` by default. Adjust the port via the `PORT` entry in `.env`.
 
+### Database
+
+- Set `DATABASE_URL` to your PostgreSQL connection string (use the Render *Internal Database URL* and keep `?sslmode=require`).
+- Sequelize now targets Postgres with SSL in production; run `npm run migrate` (Render Shell) after deployment to apply migrations.
+
 ### Realtime chat + chatbot
 
 - Realtime Socket.IO is enabled. The backend creates rooms for `staff` and `user:<id>`.

@@ -22,7 +22,7 @@ module.exports = {
         price: 55000,
         image_data: buildImage(),
         image_mime: SAMPLE_IMAGE_MIME,
-        is_active: 1,
+        is_active: true,
         category_id: resolveCategoryId('Burgers'),
         created_at: now,
         updated_at: now
@@ -33,7 +33,7 @@ module.exports = {
         price: 69000,
         image_data: buildImage(),
         image_mime: SAMPLE_IMAGE_MIME,
-        is_active: 1,
+        is_active: true,
         category_id: resolveCategoryId('Burgers'),
         created_at: now,
         updated_at: now
@@ -44,7 +44,7 @@ module.exports = {
         price: 25000,
         image_data: buildImage(),
         image_mime: SAMPLE_IMAGE_MIME,
-        is_active: 1,
+        is_active: true,
         category_id: resolveCategoryId('Sides'),
         created_at: now,
         updated_at: now
@@ -55,7 +55,7 @@ module.exports = {
         price: 15000,
         image_data: buildImage(),
         image_mime: SAMPLE_IMAGE_MIME,
-        is_active: 1,
+        is_active: true,
         category_id: resolveCategoryId('Drinks'),
         created_at: now,
         updated_at: now
@@ -66,7 +66,7 @@ module.exports = {
         price: 20000,
         image_data: buildImage(),
         image_mime: SAMPLE_IMAGE_MIME,
-        is_active: 1,
+        is_active: true,
         category_id: resolveCategoryId('Desserts'),
         created_at: now,
         updated_at: now
