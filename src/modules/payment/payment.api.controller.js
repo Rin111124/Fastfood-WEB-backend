@@ -11,7 +11,12 @@ import {
   queryVietqrPayment,
   handleVietqrWebhook
 } from "./vietqr.service.js";
-import { StripeServiceError, createStripePaymentIntent, handleStripeWebhook } from "./stripe.service.js";
+import {
+  StripeServiceError,
+  createStripePaymentIntent,
+  handleStripeWebhook,
+  finalizeStripePayment
+} from "./stripe.service.js";
 import { preparePendingOrderPayload } from "./pendingOrder.helper.js";
 
 const resolveUserId = (req) => Number(req?.auth?.user_id || req?.session?.user?.user_id);
@@ -422,6 +427,25 @@ const stripeWebhookHandler = async (req, res) => {
   }
 };
 
+const finalizeStripePaymentHandler = async (req, res) => {
+  try {
+    const { paymentIntentId, txnRef } = req.body || {};
+    const id = paymentIntentId || txnRef;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "paymentIntentId hoac txnRef bat buoc" });
+    }
+
+    const data = await finalizeStripePayment(id);
+    return res.json({ success: true, data });
+  } catch (error) {
+    if (error instanceof StripeServiceError) {
+      return res.status(error.statusCode || 400).json({ success: false, message: error.message, code: error.code });
+    }
+    return handleError(res, error);
+  }
+};
+
 // Test endpoint - Trigger payment success manually (development only)
 const testStripePaymentSuccessHandler = async (req, res) => {
   try {
@@ -465,6 +489,7 @@ export {
   paypalWebhookHandler,
   createStripeIntentHandler,
   stripeWebhookHandler,
+  finalizeStripePaymentHandler,
   testStripePaymentSuccessHandler
 };
 

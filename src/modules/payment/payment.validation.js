@@ -26,14 +26,21 @@ const vnpayStatusQuerySchema = z
     message: "orderId hoac txnRef bat buoc"
   });
 
-const stripeTestSchema = z.object({
-  paymentIntentId: z.string().trim().optional(),
-  txnRef: z.string().trim().optional()
-});
+const stripeFinalizeSchema = z
+  .object({
+    paymentIntentId: z.string().trim().optional(),
+    txnRef: z.string().trim().optional()
+  })
+  .refine((data) => Boolean(data.paymentIntentId) || Boolean(data.txnRef), {
+    message: "paymentIntentId hoac txnRef bat buoc"
+  });
+
+const stripeTestSchema = stripeFinalizeSchema;
 
 export {
   orderIdOnlySchema,
   orderIdOrPayloadSchema,
   vnpayStatusQuerySchema,
-  stripeTestSchema
+  stripeTestSchema,
+  stripeFinalizeSchema
 };

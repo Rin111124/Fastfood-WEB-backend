@@ -212,4 +212,38 @@ const handleStripeWebhook = async (signature, rawBody) => {
   return event;
 };
 
-export { StripeServiceError, createStripePaymentIntent, handleStripeWebhook, handleStripePaymentSuccess };
+const finalizeStripePayment = async (paymentIntentId) => {
+  if (!paymentIntentId) {
+    throw new StripeServiceError("Thieu paymentIntentId", 400, "STRIPE_PAYMENT_INTENT_REQUIRED");
+  }
+
+  const stripe = getStripe();
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+  if (paymentIntent.status !== "succeeded") {
+    throw new StripeServiceError(
+      "Thanh toan chua hoan tat hoac that bai",
+      400,
+      "STRIPE_NOT_SUCCEEDED",
+      { status: paymentIntent.status }
+    );
+  }
+
+  await handleStripePaymentSuccess(paymentIntentId, {
+    type: "payment_intent.succeeded",
+    data: { object: paymentIntent }
+  });
+
+  return {
+    id: paymentIntent.id,
+    status: paymentIntent.status
+  };
+};
+
+export {
+  StripeServiceError,
+  createStripePaymentIntent,
+  handleStripeWebhook,
+  handleStripePaymentSuccess,
+  finalizeStripePayment
+};

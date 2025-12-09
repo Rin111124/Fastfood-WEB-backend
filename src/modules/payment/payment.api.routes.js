@@ -18,12 +18,14 @@ import {
   paypalWebhookHandler,
   createStripeIntentHandler,
   stripeWebhookHandler,
+  finalizeStripePaymentHandler,
   testStripePaymentSuccessHandler
 } from "./payment.api.controller.js";
 import { validateBody, validateQuery } from "../../middleware/validate.js";
 import {
   orderIdOnlySchema,
   orderIdOrPayloadSchema,
+  stripeFinalizeSchema,
   stripeTestSchema,
   vnpayStatusQuerySchema
 } from "./payment.validation.js";
@@ -71,6 +73,12 @@ router.post(
   requireRoles("customer", "admin"),
   validateBody(orderIdOrPayloadSchema),
   createStripeIntentHandler
+);
+router.post(
+  "/stripe/finalize",
+  requireRoles("customer", "admin"),
+  validateBody(stripeFinalizeSchema),
+  finalizeStripePaymentHandler
 );
 router.post("/stripe/webhook", stripeWebhookHandler);
 
