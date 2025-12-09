@@ -37,20 +37,31 @@ const statusEnum = z.enum(["active", "locked", "suspended"]);
 const genderEnum = z.enum(["male", "female", "other", "unknown"]);
 const foodTypeEnum = z.enum(["burger", "pizza", "drink", "snack", "combo", "dessert", "other"]);
 
+const nullToUndefined = (value) => (value === null ? undefined : value);
+
 const createUserSchema = z.object({
   username: z.string().trim().min(3).max(100),
   email: z.string().trim().email().max(150),
   password: z.string().trim().min(8).max(255).optional(),
   role: roleEnum.optional(),
   status: statusEnum.optional(),
-  full_name: z.string().trim().min(2).max(120).optional(),
-  phone_number: z
-    .string()
-    .trim()
-    .regex(/^[0-9+()\-\s]{8,20}$/i, "Phone number must be 8-20 digits")
-    .optional(),
+  full_name: z.preprocess(
+    nullToUndefined,
+    z.string().trim().min(2).max(120).optional()
+  ),
+  phone_number: z.preprocess(
+    nullToUndefined,
+    z
+      .string()
+      .trim()
+      .regex(/^[0-9+()\-\s]{8,20}$/i, "Phone number must be 8-20 digits")
+      .optional()
+  ),
   gender: genderEnum.optional(),
-  address: z.string().trim().max(255).optional()
+  address: z.preprocess(
+    nullToUndefined,
+    z.string().trim().max(255).optional()
+  )
 });
 
 const updateUserSchema = createUserSchema.partial().refine(

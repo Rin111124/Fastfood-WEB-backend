@@ -250,6 +250,8 @@ const createUser = async (payload, actorId) => {
   const tempPassword = password || generateRandomPassword();
   const hashed = await bcrypt.hash(tempPassword, SALT_ROUNDS);
 
+  const autoVerifyEmail = role === "staff";
+
   const user = await User.create({
     username,
     password: hashed,
@@ -259,7 +261,8 @@ const createUser = async (payload, actorId) => {
     full_name,
     phone_number,
     gender,
-    address
+    address,
+    email_verified_at: autoVerifyEmail ? new Date() : null
   });
 
   await logAction(actorId, "CREATE_USER", "users", { username, role });

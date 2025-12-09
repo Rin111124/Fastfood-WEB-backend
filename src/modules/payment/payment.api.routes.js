@@ -87,7 +87,7 @@ if (process.env.NODE_ENV !== 'production') {
 router.post(
   "/cod/create",
   requireRoles("customer", "admin"),
-  validateBody(orderIdOnlySchema),
+  validateBody(orderIdOrPayloadSchema),
   createCodHandler
 );
 router.get("/cod/create", requireRoles("customer", "admin"), createCodHandler);

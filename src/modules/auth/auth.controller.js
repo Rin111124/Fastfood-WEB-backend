@@ -76,9 +76,13 @@ const signupHandler = async (req, res) => {
 
     console.log('[signupHandler] Registration successful, returning 201');
 
+    const successMessage = data?.requiresEmailVerification
+      ? "Dang ky thanh cong. Vui long kiem tra email de xac thuc tai khoan."
+      : "Dang ky thanh cong. Tai khoan da duoc xac thuc.";
+
     return res.status(201).json({
       success: true,
-      message: "Dang ky thanh cong. Vui long kiem tra email de xac thuc tai khoan.",
+      message: successMessage,
       data
     });
   } catch (error) {

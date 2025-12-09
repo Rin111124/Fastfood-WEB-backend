@@ -12,6 +12,7 @@ import {
   handleVietqrWebhook
 } from "./vietqr.service.js";
 import { StripeServiceError, createStripePaymentIntent, handleStripeWebhook } from "./stripe.service.js";
+import { preparePendingOrderPayload } from "./pendingOrder.helper.js";
 
 const resolveUserId = (req) => Number(req?.auth?.user_id || req?.session?.user?.user_id);
 const resolveRole = (req) => String(req?.auth?.role || req?.session?.user?.role || "");
@@ -146,23 +147,92 @@ export { redirectToVnpayHandler };
 const createCodHandler = async (req, res) => {
   try {
     const userId = resolveUserId(req);
-    if (!userId) return res.status(401).json({ success: false, message: "Chua dang nhap" });
+    const role = resolveRole(req);
+    if (!userId && role !== "admin") return res.status(401).json({ success: false, message: "Chua dang nhap" });
+
     const orderId = Number(req.body?.orderId || req.query?.orderId);
-    if (!orderId) return res.status(400).json({ success: false, message: "Thieu orderId" });
-    const order = await db.Order.findByPk(orderId);
-    if (!order) return res.status(404).json({ success: false, message: "Khong tim thay don hang" });
-    if (order.user_id !== userId && resolveRole(req) !== "admin") {
-      return res.status(403).json({ success: false, message: "Khong du quyen" });
+    const orderPayload = req.body?.orderPayload;
+
+    if (!orderId && !orderPayload) {
+      return res.status(400).json({ success: false, message: "Thieu orderId hoac orderPayload" });
     }
-    const payment = await db.Payment.create({
-      order_id: orderId,
-      provider: "cod",
-      amount: Number(order.total_amount || 0),
-      currency: "VND",
-      status: "initiated",
-      meta: { note: "Thanh toan khi nhan hang" }
+
+    // Case 1: create payment for an existing order
+    if (orderId) {
+      const order = await db.Order.findByPk(orderId);
+      if (!order) return res.status(404).json({ success: false, message: "Khong tim thay don hang" });
+      if (order.user_id !== userId && role !== "admin") {
+        return res.status(403).json({ success: false, message: "Khong du quyen" });
+      }
+      const payment = await db.Payment.create({
+        order_id: orderId,
+        provider: "cod",
+        amount: Number(order.total_amount || 0),
+        currency: "VND",
+        status: "initiated",
+        meta: { note: "Thanh toan khi nhan hang", unpaid: true }
+      });
+      return res.json({
+        success: true,
+        data: { order: toPlain(order), payment: toPlain(payment) }
+      });
+    }
+
+    // Case 2: create order + payment from payload (sandbox-friendly)
+    const targetUserId =
+      role === "admin" && Number(orderPayload?.userId)
+        ? Number(orderPayload.userId)
+        : userId;
+    if (!targetUserId) {
+      return res.status(400).json({ success: false, message: "Khong xac dinh duoc userId" });
+    }
+
+    const pending = await preparePendingOrderPayload(orderPayload, {
+      userId: targetUserId,
+      defaultPaymentMethod: "cod"
     });
-    return res.json({ success: true, data: { payment_id: payment.payment_id, order_id: orderId } });
+
+    const { order, payment } = await db.sequelize.transaction(async (transaction) => {
+      const order = await db.Order.create(
+        {
+          user_id: pending.userId,
+          total_amount: pending.totalAmount,
+          delivery_fee: pending.shippingFee || 0,
+          original_amount: pending.itemsSubtotal,
+          status: "pending",
+          payment_method: "cod",
+          note: pending.note,
+          expected_delivery_time: pending.expectedDeliveryTime
+            ? new Date(pending.expectedDeliveryTime)
+            : null
+        },
+        { transaction }
+      );
+
+      await db.OrderItem.bulkCreate(
+        pending.orderItemsPayload.map((item) => ({ ...item, order_id: order.order_id })),
+        { transaction }
+      );
+
+      const payment = await db.Payment.create(
+        {
+          order_id: order.order_id,
+          provider: "cod",
+          amount: pending.totalAmount,
+          currency: "VND",
+          status: "initiated",
+          meta: { note: orderPayload?.note || "Thanh toan khi nhan hang", unpaid: true }
+        },
+        { transaction }
+      );
+
+      return { order, payment };
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: { order: toPlain(order), payment: toPlain(payment) }
+    });
   } catch (error) {
     return handleError(res, error);
   }

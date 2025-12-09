@@ -466,6 +466,12 @@ const login = async ({ identifier, username, email, password }) => {
     });
   }
 
+  if (!user.email_verified_at && user.role === 'staff') {
+    const now = new Date();
+    await user.update({ email_verified_at: now });
+    user.email_verified_at = now;
+  }
+
   if (!user.email_verified_at) {
     throw new AuthError(
       'Tai khoan chua duoc xac thuc email. Vui long kiem tra hop thu de kich hoat.',
@@ -502,6 +508,7 @@ const register = async (payload) => {
     role: normalizedRole,
     address: normalizedAddress
   } = validateSignupInput(payload);
+  const isStaffSignup = normalizedRole === 'staff';
 
   const existingUser = await User.unscoped().findOne({
     where: {
@@ -534,19 +541,26 @@ const register = async (payload) => {
       full_name: normalizedFullName,
       phone_number: normalizedPhone,
       gender: normalizedGender,
-      address: normalizedAddress
+      address: normalizedAddress,
+      email_verified_at: isStaffSignup ? new Date() : null
     }, { transaction });
   });
 
-  const emailVerification = await requestEmailVerification({
-    userId: newUser.user_id,
-    ip: payload.ip,
-    userAgent: payload.userAgent
-  });
+  let emailVerification = null;
+  let requiresEmailVerification = false;
+
+  if (!isStaffSignup) {
+    emailVerification = await requestEmailVerification({
+      userId: newUser.user_id,
+      ip: payload.ip,
+      userAgent: payload.userAgent
+    });
+    requiresEmailVerification = true;
+  }
 
   return {
     user: sanitizeUser(newUser),
-    requiresEmailVerification: true,
+    requiresEmailVerification,
     emailVerification
   };
 };
