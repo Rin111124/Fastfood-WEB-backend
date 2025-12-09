@@ -27,6 +27,7 @@ import {
   stripeTestSchema,
   vnpayStatusQuerySchema
 } from "./payment.validation.js";
+import { createAdminManualPaymentHandler, completeAdminManualPaymentHandler } from "./payment.api.controller.js";
 
 const router = express.Router();
 
@@ -117,5 +118,9 @@ router.post(
   validateBody(orderIdOnlySchema),
   queryVietqrHandler
 );
+
+// Admin manual payment flow (create initiated, then mark success)
+router.post("/admin/manual/initiate", requireRoles("admin"), createAdminManualPaymentHandler);
+router.post("/admin/manual/complete", requireRoles("admin"), completeAdminManualPaymentHandler);
 
 export default router;

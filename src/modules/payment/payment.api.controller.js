@@ -467,3 +467,78 @@ export {
   stripeWebhookHandler,
   testStripePaymentSuccessHandler
 };
+
+// --- Admin manual payment flow ---
+const createAdminManualPaymentHandler = async (req, res) => {
+  try {
+    const role = resolveRole(req);
+    if (role !== "admin") return res.status(403).json({ success: false, message: "Khong du quyen" });
+
+    const orderId = Number(req.body?.orderId);
+    const provider = String(req.body?.provider || "cash").toLowerCase();
+    const amount = Number(req.body?.amount);
+    const currency = req.body?.currency || "VND";
+    const meta = req.body?.meta || {};
+
+    if (!orderId) return res.status(400).json({ success: false, message: "Thieu orderId" });
+
+    const order = await db.Order.findByPk(orderId);
+    if (!order) return res.status(404).json({ success: false, message: "Khong tim thay don hang" });
+
+    const payment = await db.Payment.create({
+      order_id: orderId,
+      provider,
+      amount: Number.isFinite(amount) && amount > 0 ? amount : Number(order.total_amount || 0),
+      currency,
+      status: "initiated",
+      meta: { ...meta, createdBy: "admin" }
+    });
+
+    return res.status(201).json({ success: true, data: toPlain(payment) });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+const completeAdminManualPaymentHandler = async (req, res) => {
+  try {
+    const role = resolveRole(req);
+    if (role !== "admin") return res.status(403).json({ success: false, message: "Khong du quyen" });
+
+    const paymentId = req.body?.paymentId ? Number(req.body.paymentId) : undefined;
+    const orderId = req.body?.orderId ? Number(req.body.orderId) : undefined;
+    const txnRef = req.body?.txnRef ? String(req.body.txnRef) : undefined;
+    const meta = req.body?.meta || {};
+
+    if (!paymentId && !orderId) {
+      return res.status(400).json({ success: false, message: "Can paymentId hoac orderId" });
+    }
+
+    const payment = await db.Payment.findOne({
+      where: paymentId ? { payment_id: paymentId } : { order_id: orderId },
+      order: [["created_at", "DESC"]]
+    });
+
+    if (!payment) return res.status(404).json({ success: false, message: "Khong tim thay giao dich" });
+
+    await payment.update({
+      status: "success",
+      txn_ref: txnRef || payment.txn_ref,
+      meta: { ...(payment.meta || {}), ...meta, settledBy: "admin", settledAt: new Date() }
+    });
+
+    const order = await db.Order.findByPk(payment.order_id);
+    if (order) {
+      await order.update({
+        status: order.status === "pending" ? "paid" : order.status,
+        payment_method: payment.provider
+      });
+    }
+
+    return res.json({ success: true, data: toPlain(payment) });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+export { createAdminManualPaymentHandler, completeAdminManualPaymentHandler };
