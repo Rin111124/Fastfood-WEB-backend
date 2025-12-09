@@ -492,6 +492,47 @@ const listNews = async ({ limit, search } = {}) => {
   });
 };
 
+const getNewsById = async (newsId) => {
+  const id = Number(newsId);
+  if (!Number.isFinite(id) || id <= 0) {
+    throw new CustomerServiceError("Tin tuc khong hop le", 404, "NEWS_NOT_FOUND");
+  }
+
+  const supportsBlob = (await ensureNewsImageColumns()) !== false;
+  const baseOptions = {
+    paranoid: true
+  };
+
+  if (!supportsBlob) {
+    baseOptions.attributes = excludeImageColumnsWhenUnsupported(supportsBlob);
+  }
+
+  let item;
+  try {
+    item = await News.findByPk(id, baseOptions);
+  } catch (error) {
+    if (supportsBlob && isMissingColumnError(error)) {
+      console.warn("Falling back to URL-only news images for customer detail API due to missing columns.");
+      item = await News.findByPk(id, {
+        ...baseOptions,
+        attributes: excludeImageColumnsWhenUnsupported(false)
+      });
+    } else if (isMissingTableError(error)) {
+      console.warn("News table not found; returning not found for customer.");
+      throw new CustomerServiceError("Khong tim thay tin tuc", 404, "NEWS_NOT_FOUND");
+    } else {
+      throw error;
+    }
+  }
+
+  if (!item) {
+    throw new CustomerServiceError("Khong tim thay tin tuc", 404, "NEWS_NOT_FOUND");
+  }
+
+  const plain = item.get({ plain: true });
+  return mapImageFields(plain, { includeMime: supportsBlob });
+};
+
 const mapOrderPlain = (order) => {
   const plain = order.get({ plain: true });
   const items = Array.isArray(plain.OrderItems) ? plain.OrderItems : [];
@@ -1394,6 +1435,7 @@ export {
   CustomerServiceError,
   listActiveProducts,
   listNews,
+  getNewsById,
   getCustomerDashboard,
   listOrdersForCustomer,
   getCustomerOrder,

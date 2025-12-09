@@ -2,6 +2,7 @@ import express from "express";
 import {
   listProductsHandler,
   listNewsHandler,
+  getNewsDetailHandler,
   customerDashboardHandler,
   listOrdersHandler,
   getOrderHandler,
@@ -28,6 +29,7 @@ const router = express.Router();
 
 router.get("/products", listProductsHandler);
 router.get("/news", listNewsHandler);
+router.get("/news/:newsId", getNewsDetailHandler);
 router.get("/dashboard", requireRoles("customer", "admin"), customerDashboardHandler);
 
 router.use(requireRoles("customer", "admin"));

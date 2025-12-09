@@ -136,14 +136,14 @@ const getDashboardMetrics = async () => {
     User.count(),
     Order.count(),
     Order.sum("total_amount", {
-      where: sequelize.where(fn("DATE", col("order_date")), fn("CURDATE"))
+      where: sequelize.where(sequelize.cast(col("order_date"), "date"), sequelize.literal("CURRENT_DATE"))
     }),
     Order.findAll({
       attributes: [
-        [fn("DATE_FORMAT", col("order_date"), "%Y-%m"), "month"],
+        [fn("TO_CHAR", col("order_date"), "YYYY-MM"), "month"],
         [fn("SUM", col("total_amount")), "revenue"]
       ],
-      group: [fn("DATE_FORMAT", col("order_date"), "%Y-%m")],
+      group: [fn("TO_CHAR", col("order_date"), "YYYY-MM")],
       order: [[literal("month"), "DESC"]],
       limit: 6,
       raw: true
@@ -157,8 +157,8 @@ const getDashboardMetrics = async () => {
         model: Product,
         attributes: ["name"]
       }],
-      group: ["product_id", "Product.name"],
-      order: [[literal("totalQuantity"), "DESC"]],
+      group: [col("OrderItem.product_id"), col("Product.name")],
+      order: [[literal('"totalQuantity"'), "DESC"]],
       limit: 5,
       raw: true
     })
@@ -628,45 +628,48 @@ const listNews = async ({ includeDeleted = false, limit, search } = {}) => {
     };
   }
 
-  const QUERY_TIMEOUT_MS = 1200;
-  let timeoutId;
+  const QUERY_TIMEOUT_MS = Number(process.env.NEWS_QUERY_TIMEOUT_MS || 5000);
 
-  let queryDefinition = baseQuery;
+  const runWithTimeout = async (queryDefinition) => {
+    let timeoutId;
+    try {
+      return await Promise.race([
+        News.findAll(queryDefinition),
+        new Promise((_, reject) => {
+          timeoutId = setTimeout(() => reject(new Error("Query timeout")), QUERY_TIMEOUT_MS);
+        })
+      ]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  };
 
   try {
-    const results = await Promise.race([
-      News.findAll(queryDefinition),
-      new Promise((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error("Query timeout")), QUERY_TIMEOUT_MS);
-      })
-    ]);
-
-    return results;
+    return await runWithTimeout(baseQuery);
   } catch (error) {
     if (supportsBlob && isMissingColumnError(error)) {
       console.warn("Falling back to URL-only news images for admin API due to missing columns.");
-      queryDefinition = {
+      const queryDefinition = {
         ...baseQuery,
         attributes: newsAttributes.filter((attribute) => attribute !== "image_data" && attribute !== "image_mime")
       };
-      const results = await News.findAll(queryDefinition);
-      return results;
+      return await runWithTimeout(queryDefinition);
     }
     if (isMissingTableError(error)) {
       console.warn("News table not found; returning empty list.");
       return [];
     }
     if (error.message === "Query timeout") {
-      console.error("News query timed out");
-      return [];
+      console.warn("News query timed out, retrying without blob columns");
+      const retryQuery = {
+        ...baseQuery,
+        attributes: newsAttributes.filter((attribute) => attribute !== "image_data" && attribute !== "image_mime")
+      };
+      return await runWithTimeout(retryQuery);
     }
 
     console.error("Error in listNews:", error);
     throw error;
-  } finally {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
   }
 };
 
@@ -1049,11 +1052,16 @@ const getReportOverview = async () => {
     attributes: [
       "product_id",
       [fn("SUM", col("quantity")), "soldQuantity"],
-      [literal("SUM(`OrderItem`.`quantity` * `OrderItem`.`price`)"), "revenue"]
+      [literal('SUM("OrderItem"."quantity" * "OrderItem"."price")'), "revenue"]
     ],
     include: [{ model: Product, attributes: ["name", "food_type"] }],
-    group: ["product_id", "Product.name", "Product.food_type"],
-    order: [[literal("soldQuantity"), "DESC"]],
+    group: [
+      col("OrderItem.product_id"),
+      col("Product.product_id"),
+      col("Product.name"),
+      col("Product.food_type")
+    ],
+    order: [[literal('"soldQuantity"'), "DESC"]],
     limit: 10
   });
 

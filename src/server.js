@@ -27,6 +27,15 @@ const toPositiveInt = (value, fallback) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 };
 
+const toBoolean = (value, fallback = false) => {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === "boolean") return value;
+  const normalized = String(value).trim().toLowerCase();
+  if (["true", "1", "yes", "y", "on"].includes(normalized)) return true;
+  if (["false", "0", "no", "n", "off"].includes(normalized)) return false;
+  return fallback;
+};
+
 const resolvePort = (value, defaultPort = 3000) => {
   const parsed = Number(value);
   if (Number.isFinite(parsed) && parsed > 0 && parsed < 65536) {
@@ -143,9 +152,11 @@ const rateLimitMessage = {
   message: "Too many requests. Please try again later."
 };
 
+const rateLimitEnabled = toBoolean(process.env.RATE_LIMIT_ENABLED, !allowAllInDev);
+
 const perMinuteLimiter = rateLimit({
   windowMs: toPositiveInt(process.env.RATE_LIMIT_WINDOW_MINUTE_MS, 60_000),
-  max: toPositiveInt(process.env.RATE_LIMIT_MAX_PER_MINUTE, 5),
+  max: toPositiveInt(process.env.RATE_LIMIT_MAX_PER_MINUTE, allowAllInDev ? 500 : 300),
   standardHeaders: true,
   legacyHeaders: false,
   message: rateLimitMessage
@@ -153,13 +164,17 @@ const perMinuteLimiter = rateLimit({
 
 const perHourLimiter = rateLimit({
   windowMs: toPositiveInt(process.env.RATE_LIMIT_WINDOW_HOUR_MS, 60 * 60 * 1000),
-  max: toPositiveInt(process.env.RATE_LIMIT_MAX_PER_HOUR, 60),
+  max: toPositiveInt(process.env.RATE_LIMIT_MAX_PER_HOUR, allowAllInDev ? 5000 : 3000),
   standardHeaders: true,
   legacyHeaders: false,
   message: rateLimitMessage
 });
 
-app.use("/api", perMinuteLimiter, perHourLimiter);
+if (rateLimitEnabled) {
+  app.use("/api", perMinuteLimiter, perHourLimiter);
+} else {
+  console.log("Rate limiting is disabled (set RATE_LIMIT_ENABLED=true to enable).");
+}
 
 // Body parsing
 app.use(

@@ -4,6 +4,7 @@ import {
   CustomerServiceError,
   listActiveProducts,
   listNews,
+  getNewsById,
   getCustomerDashboard,
   listOrdersForCustomer,
   getCustomerOrder,
@@ -81,6 +82,15 @@ const listNewsHandler = async (req, res) => {
       limit,
       search: search && search.length ? search : undefined
     });
+    return res.json({ success: true, data });
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+const getNewsDetailHandler = async (req, res) => {
+  try {
+    const data = await getNewsById(req.params.newsId);
     return res.json({ success: true, data });
   } catch (error) {
     return handleError(res, error);
@@ -301,6 +311,7 @@ const clearCartHandler = async (req, res) => {
 export {
   listProductsHandler,
   listNewsHandler,
+  getNewsDetailHandler,
   customerDashboardHandler,
   listOrdersHandler,
   getOrderHandler,
