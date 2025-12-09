@@ -416,7 +416,14 @@ const createStripeIntentHandler = async (req, res) => {
 const stripeWebhookHandler = async (req, res) => {
   try {
     const signature = req.headers["stripe-signature"];
-    await handleStripeWebhook(signature, req.body);
+    if (!signature) {
+      console.error("Stripe webhook: missing signature header");
+      return res.status(400).send("Missing stripe-signature");
+    }
+    const event = await handleStripeWebhook(signature, req.body);
+    if (event?.type) {
+      console.log("[Stripe webhook] received event:", event.type, "id:", event?.data?.object?.id);
+    }
     return res.json({ received: true });
   } catch (error) {
     console.error("Stripe webhook error:", error);
