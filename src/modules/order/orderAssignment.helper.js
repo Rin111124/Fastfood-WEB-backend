@@ -75,7 +75,7 @@ const assignOrderToOnDutyStaff = async (order, options = {}) => {
       },
       attributes: ["user_id"],
       order: [
-        [db.sequelize.fn('RAND')],  // Random for load distribution
+        [db.sequelize.random()], // portable random for load distribution (works on Postgres/MySQL)
         ["user_id", "ASC"]
       ],
       transaction
