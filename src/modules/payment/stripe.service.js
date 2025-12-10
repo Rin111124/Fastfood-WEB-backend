@@ -134,15 +134,24 @@ const createStripePaymentIntent = async (orderId, context = {}, options = {}) =>
 };
 
 const handleStripePaymentSuccess = async (paymentIntentId, payload = {}) => {
+  console.log("[Stripe payment success] Processing intent:", paymentIntentId);
   const payment = await Payment.findOne({ where: { txn_ref: paymentIntentId } });
-  if (!payment) return;
-  if (payment.status === "success") return;
+  if (!payment) {
+    console.warn("[Stripe payment success] Payment record not found for intent:", paymentIntentId);
+    return;
+  }
+  if (payment.status === "success") {
+    console.log("[Stripe payment success] Payment already succeeded, skipping:", paymentIntentId);
+    return;
+  }
 
+  console.log("[Stripe payment success] Updating payment", payment.payment_id, "to success");
   let orderUserId = null;
   await sequelize.transaction(async (t) => {
     let order = null;
     let needsFulfillment = false;
     if (!payment.order_id && payment.meta?.pending_order) {
+      console.log("[Stripe payment success] Creating order from pending payload");
       order = await createOrderFromPendingPayload(payment.meta.pending_order, { transaction: t });
       payment.order_id = order.order_id;
       needsFulfillment = true;
@@ -165,6 +174,7 @@ const handleStripePaymentSuccess = async (paymentIntentId, payload = {}) => {
     if (order) {
       if (needsFulfillment || !["paid", "completed"].includes(order.status)) {
         if (!["paid", "completed"].includes(order.status)) {
+          console.log("[Stripe payment success] Updating order", order.order_id, "to paid");
           await order.update({ status: "paid" }, { transaction: t });
         }
         await prepareOrderForFulfillment(order, { transaction: t });
@@ -178,6 +188,7 @@ const handleStripePaymentSuccess = async (paymentIntentId, payload = {}) => {
   });
 
   if (orderUserId) {
+    console.log("[Stripe payment success] Clearing cart for user:", orderUserId);
     await clearCustomerCart(orderUserId);
     emitToUser(orderUserId, "order:payment-updated", {
       orderId: payment.order_id,
@@ -190,6 +201,7 @@ const handleStripePaymentSuccess = async (paymentIntentId, payload = {}) => {
     status: "paid",
     provider: "stripe"
   });
+  console.log("[Stripe payment success] Complete for intent:", paymentIntentId);
 };
 
 const handleStripeWebhook = async (signature, rawBody) => {
@@ -217,10 +229,13 @@ const finalizeStripePayment = async (paymentIntentId) => {
     throw new StripeServiceError("Thieu paymentIntentId", 400, "STRIPE_PAYMENT_INTENT_REQUIRED");
   }
 
+  console.log("[Stripe finalize service] Retrieving intent:", paymentIntentId);
   const stripe = getStripe();
   const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  console.log("[Stripe finalize service] Intent status:", paymentIntent.status);
 
   if (paymentIntent.status !== "succeeded") {
+    console.warn("[Stripe finalize service] Intent not succeeded, status:", paymentIntent.status);
     throw new StripeServiceError(
       "Thanh toan chua hoan tat hoac that bai",
       400,
@@ -229,10 +244,12 @@ const finalizeStripePayment = async (paymentIntentId) => {
     );
   }
 
+  console.log("[Stripe finalize service] Processing success for intent:", paymentIntentId);
   await handleStripePaymentSuccess(paymentIntentId, {
     type: "payment_intent.succeeded",
     data: { object: paymentIntent }
   });
+  console.log("[Stripe finalize service] Success completed for intent:", paymentIntentId);
 
   return {
     id: paymentIntent.id,

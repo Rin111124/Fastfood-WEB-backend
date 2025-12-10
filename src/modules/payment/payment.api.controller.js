@@ -466,12 +466,40 @@ const finalizeStripePaymentHandler = async (req, res) => {
     const id = paymentIntentId || txnRef;
 
     if (!id) {
+      console.warn("[Stripe finalize] Missing paymentIntentId or txnRef");
       return res.status(400).json({ success: false, message: "paymentIntentId hoac txnRef bat buoc" });
     }
 
+    console.log("[Stripe finalize] Processing payment intent:", id);
     const data = await finalizeStripePayment(id);
+    console.log("[Stripe finalize] Success for payment intent:", id);
     return res.json({ success: true, data });
   } catch (error) {
+    console.error("[Stripe finalize] Error:", error.message);
+    if (error instanceof StripeServiceError) {
+      return res.status(error.statusCode || 400).json({ success: false, message: error.message, code: error.code });
+    }
+    return handleError(res, error);
+  }
+};
+
+// Public endpoint for Stripe to finalize payment (no auth required)
+const stripeFinalizeFallbackHandler = async (req, res) => {
+  try {
+    const { paymentIntentId, txnRef } = req.body || {};
+    const id = paymentIntentId || txnRef;
+
+    if (!id) {
+      console.warn("[Stripe finalize fallback] Missing paymentIntentId or txnRef");
+      return res.status(400).json({ success: false, message: "paymentIntentId hoac txnRef bat buoc" });
+    }
+
+    console.log("[Stripe finalize fallback] Processing payment intent:", id);
+    const data = await finalizeStripePayment(id);
+    console.log("[Stripe finalize fallback] Success for payment intent:", id);
+    return res.json({ success: true, data });
+  } catch (error) {
+    console.error("[Stripe finalize fallback] Error:", error.message);
     if (error instanceof StripeServiceError) {
       return res.status(error.statusCode || 400).json({ success: false, message: error.message, code: error.code });
     }
@@ -601,3 +629,16 @@ const completeAdminManualPaymentHandler = async (req, res) => {
 };
 
 export { createAdminManualPaymentHandler, completeAdminManualPaymentHandler };
+
+export {
+  createPaypalOrderHandler,
+  paypalReturnHandler,
+  paypalCancelHandler,
+  paypalWebhookHandler,
+  createStripeIntentHandler,
+  stripeWebhookHandler,
+  stripeWebhookDebugHandler,
+  finalizeStripePaymentHandler,
+  stripeFinalizeFallbackHandler,
+  testStripePaymentSuccessHandler
+};

@@ -187,7 +187,15 @@ const perHourLimiter = rateLimit({
 });
 
 if (rateLimitEnabled) {
-  app.use("/api", perMinuteLimiter, perHourLimiter);
+  // Skip rate limiting for Stripe webhook
+  app.use((req, res, next) => {
+    if (req.path === STRIPE_WEBHOOK_PATH) return next();
+    return perMinuteLimiter(req, res, next);
+  });
+  app.use((req, res, next) => {
+    if (req.path === STRIPE_WEBHOOK_PATH) return next();
+    return perHourLimiter(req, res, next);
+  });
 } else {
   console.log("Rate limiting is disabled (set RATE_LIMIT_ENABLED=true to enable).");
 }

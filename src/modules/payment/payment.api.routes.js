@@ -20,6 +20,7 @@ import {
   stripeWebhookHandler,
   stripeWebhookDebugHandler,
   finalizeStripePaymentHandler,
+  stripeFinalizeFallbackHandler,
   testStripePaymentSuccessHandler
 } from "./payment.api.controller.js";
 import { validateBody, validateQuery } from "../../middleware/validate.js";
@@ -80,6 +81,11 @@ router.post(
   requireRoles("customer", "admin"),
   validateBody(stripeFinalizeSchema),
   finalizeStripePaymentHandler
+);
+router.post(
+  "/stripe/finalize-fallback",
+  validateBody(stripeFinalizeSchema),
+  stripeFinalizeFallbackHandler
 );
 router.post("/stripe/webhook", stripeWebhookHandler);
 router.get("/stripe/webhook/debug", stripeWebhookDebugHandler);
