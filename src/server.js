@@ -23,6 +23,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const VIEWS_ROOT = path.join(__dirname, "views");
+const STRIPE_WEBHOOK_PATH = "/api/payments/stripe/webhook";
 const hasViewsDir = fs.existsSync(VIEWS_ROOT);
 const isRenderPlatform = Boolean(
   process.env.RENDER ||
@@ -192,12 +193,26 @@ if (rateLimitEnabled) {
 }
 
 // Body parsing
+// Keep raw body for Stripe webhook signature verification
+const jsonParser = express.json();
+const urlencodedParser = express.urlencoded({ extended: true });
+
 app.use(
-  "/api/payments/stripe/webhook",
-  express.raw({ type: "application/json" })
+  STRIPE_WEBHOOK_PATH,
+  express.raw({ type: "application/json" }),
+  (req, res, next) => {
+    req.rawBody = req.body;
+    next();
+  }
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use((req, res, next) => {
+  if (req.originalUrl === STRIPE_WEBHOOK_PATH) return next();
+  return jsonParser(req, res, next);
+});
+app.use((req, res, next) => {
+  if (req.originalUrl === STRIPE_WEBHOOK_PATH) return next();
+  return urlencodedParser(req, res, next);
+});
 
 // Static uploads serving
 app.use("/uploads", express.static(UPLOAD_ROOT));

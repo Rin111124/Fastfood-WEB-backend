@@ -18,6 +18,7 @@ import {
   paypalWebhookHandler,
   createStripeIntentHandler,
   stripeWebhookHandler,
+  stripeWebhookDebugHandler,
   finalizeStripePaymentHandler,
   testStripePaymentSuccessHandler
 } from "./payment.api.controller.js";
@@ -81,6 +82,7 @@ router.post(
   finalizeStripePaymentHandler
 );
 router.post("/stripe/webhook", stripeWebhookHandler);
+router.get("/stripe/webhook/debug", stripeWebhookDebugHandler);
 
 // TEST ONLY - Manually trigger payment success (disable in production)
 if (process.env.NODE_ENV !== 'production') {

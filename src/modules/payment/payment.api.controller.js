@@ -420,7 +420,12 @@ const stripeWebhookHandler = async (req, res) => {
       console.error("Stripe webhook: missing signature header");
       return res.status(400).send("Missing stripe-signature");
     }
-    const event = await handleStripeWebhook(signature, req.body);
+    // Prefer the preserved raw buffer; fall back to body if not available
+    const rawBody = req.rawBody || req.body;
+    console.log("[Stripe webhook] Processing event");
+    console.log("[Stripe webhook] Signature header present:", Boolean(signature));
+    console.log("[Stripe webhook] Has raw body:", Boolean(req.rawBody));
+    const event = await handleStripeWebhook(signature, rawBody);
     if (event?.type) {
       console.log("[Stripe webhook] received event:", event.type, "id:", event?.data?.object?.id);
     }
@@ -431,6 +436,27 @@ const stripeWebhookHandler = async (req, res) => {
       return res.status(error.statusCode || 400).send(error.message);
     }
     return res.status(500).send("Webhook error");
+  }
+};
+
+const stripeWebhookDebugHandler = async (req, res) => {
+  try {
+    const hasSecret = Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+    const secretLength = process.env.STRIPE_WEBHOOK_SECRET?.length || 0;
+    return res.json({
+      success: true,
+      webhookConfig: {
+        webhookUrl: "/api/payments/stripe/webhook",
+        hasStripeSecretKey: Boolean(process.env.STRIPE_SECRET_KEY),
+        hasStripeWebhookSecret: hasSecret,
+        webhookSecretLength: secretLength,
+        webhookSecretPrefix: hasSecret ? process.env.STRIPE_WEBHOOK_SECRET.substring(0, 10) : "N/A",
+        nodeEnv: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    return handleError(res, error);
   }
 };
 
@@ -496,6 +522,7 @@ export {
   paypalWebhookHandler,
   createStripeIntentHandler,
   stripeWebhookHandler,
+  stripeWebhookDebugHandler,
   finalizeStripePaymentHandler,
   testStripePaymentSuccessHandler
 };
