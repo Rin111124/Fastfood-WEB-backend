@@ -499,11 +499,13 @@ const stripeFinalizeFallbackHandler = async (req, res) => {
     console.log("[Stripe finalize fallback] Success for payment intent:", id);
     return res.json({ success: true, data });
   } catch (error) {
-    console.error("[Stripe finalize fallback] Error:", error.message);
+    console.error("[Stripe finalize fallback] Error:", error);
+    console.error("[Stripe finalize fallback] Error message:", error?.message);
+    console.error("[Stripe finalize fallback] Error stack:", error?.stack);
     if (error instanceof StripeServiceError) {
       return res.status(error.statusCode || 400).json({ success: false, message: error.message, code: error.code });
     }
-    return handleError(res, error);
+    return res.status(500).json({ success: false, message: "Co loi xay ra: " + (error?.message || "Unknown error") });
   }
 };
 

@@ -133,11 +133,19 @@ const createStripePaymentIntent = async (orderId, context = {}, options = {}) =>
   };
 };
 
-const handleStripePaymentSuccess = async (paymentIntentId, payload = {}) => {
+const handleStripePaymentSuccess = async (paymentIntentId, payload = {}, options = {}) => {
+  const throwOnMissing = options.throwIfNotFound === true;
   console.log("[Stripe payment success] Processing intent:", paymentIntentId);
   const payment = await Payment.findOne({ where: { txn_ref: paymentIntentId } });
   if (!payment) {
     console.warn("[Stripe payment success] Payment record not found for intent:", paymentIntentId);
+    if (throwOnMissing) {
+      throw new StripeServiceError(
+        "Payment record not found for this payment intent",
+        404,
+        "PAYMENT_NOT_FOUND"
+      );
+    }
     return;
   }
   if (payment.status === "success") {
@@ -229,32 +237,46 @@ const finalizeStripePayment = async (paymentIntentId) => {
     throw new StripeServiceError("Thieu paymentIntentId", 400, "STRIPE_PAYMENT_INTENT_REQUIRED");
   }
 
-  console.log("[Stripe finalize service] Retrieving intent:", paymentIntentId);
-  const stripe = getStripe();
-  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-  console.log("[Stripe finalize service] Intent status:", paymentIntent.status);
+  try {
+    console.log("[Stripe finalize service] Retrieving intent:", paymentIntentId);
+    const stripe = getStripe();
+    console.log("[Stripe finalize service] Stripe client initialized");
 
-  if (paymentIntent.status !== "succeeded") {
-    console.warn("[Stripe finalize service] Intent not succeeded, status:", paymentIntent.status);
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+    console.log("[Stripe finalize service] Intent status:", paymentIntent.status);
+
+    if (paymentIntent.status !== "succeeded") {
+      console.warn("[Stripe finalize service] Intent not succeeded, status:", paymentIntent.status);
+      throw new StripeServiceError(
+        "Thanh toan chua hoan tat hoac that bai",
+        400,
+        "STRIPE_NOT_SUCCEEDED",
+        { status: paymentIntent.status }
+      );
+    }
+
+    console.log("[Stripe finalize service] Processing success for intent:", paymentIntentId);
+    await handleStripePaymentSuccess(paymentIntentId, {
+      type: "payment_intent.succeeded",
+      data: { object: paymentIntent }
+    }, { throwIfNotFound: true });
+    console.log("[Stripe finalize service] Success completed for intent:", paymentIntentId);
+
+    return {
+      id: paymentIntent.id,
+      status: paymentIntent.status
+    };
+  } catch (error) {
+    console.error("[Stripe finalize service] Caught error:", error);
+    if (error instanceof StripeServiceError) {
+      throw error;
+    }
     throw new StripeServiceError(
-      "Thanh toan chua hoan tat hoac that bai",
-      400,
-      "STRIPE_NOT_SUCCEEDED",
-      { status: paymentIntent.status }
+      error?.message || "Unknown error retrieving payment intent",
+      error?.status || 500,
+      "STRIPE_API_ERROR"
     );
   }
-
-  console.log("[Stripe finalize service] Processing success for intent:", paymentIntentId);
-  await handleStripePaymentSuccess(paymentIntentId, {
-    type: "payment_intent.succeeded",
-    data: { object: paymentIntent }
-  });
-  console.log("[Stripe finalize service] Success completed for intent:", paymentIntentId);
-
-  return {
-    id: paymentIntent.id,
-    status: paymentIntent.status
-  };
 };
 
 export {
