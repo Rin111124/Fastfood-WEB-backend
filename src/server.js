@@ -22,6 +22,14 @@ app.set("trust proxy", 1);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const VIEWS_ROOT = path.join(__dirname, "views");
+const hasViewsDir = fs.existsSync(VIEWS_ROOT);
+const isRenderPlatform = Boolean(
+  process.env.RENDER ||
+  process.env.RENDER_EXTERNAL_URL ||
+  process.env.RENDER_SERVICE_ID
+);
+
 const toPositiveInt = (value, fallback) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
@@ -35,6 +43,13 @@ const toBoolean = (value, fallback = false) => {
   if (["false", "0", "no", "n", "off"].includes(normalized)) return false;
   return fallback;
 };
+
+const isProdLikeEnv =
+  (process.env.NODE_ENV || "development") === "production" ||
+  Boolean(process.env.RAILWAY_ENVIRONMENT) ||
+  isRenderPlatform;
+
+const apiOnlyMode = toBoolean(process.env.API_ONLY, isProdLikeEnv || !hasViewsDir);
 
 const resolvePort = (value, defaultPort = 3000) => {
   const parsed = Number(value);
@@ -118,7 +133,7 @@ const normalizeOrigin = (origin) => {
 };
 
 const allowedOrigins = buildAllowedOrigins();
-const allowAllInDev = (process.env.NODE_ENV || "development") !== "production";
+const allowAllInDev = !isProdLikeEnv;
 
 const corsOptions = {
   origin: (origin, callback) => {
@@ -200,7 +215,14 @@ app.use(
   })
 );
 
-initWebRoutes(app);
+if (!apiOnlyMode) {
+  app.set("view engine", "ejs");
+  app.set("views", VIEWS_ROOT);
+  initWebRoutes(app);
+} else {
+  console.log("API-only mode enabled: skipping server-rendered web routes.");
+}
+
 initApiRoutes(app);
 
 app.get("/healthz", (req, res) => {
@@ -221,7 +243,7 @@ app.get("/", (req, res) => {
 
 const maybeServeFrontend = () => {
   // Skip frontend serving in production/Railway environment
-  if (process.env.NODE_ENV === 'production' || process.env.RAILWAY_ENVIRONMENT) {
+  if (isProdLikeEnv) {
     console.log('Skipping frontend serving in production environment');
     return;
   }
