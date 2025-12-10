@@ -552,6 +552,7 @@ export {
   stripeWebhookHandler,
   stripeWebhookDebugHandler,
   finalizeStripePaymentHandler,
+  stripeFinalizeFallbackHandler,
   testStripePaymentSuccessHandler
 };
 
@@ -628,17 +629,7 @@ const completeAdminManualPaymentHandler = async (req, res) => {
   }
 };
 
-export { createAdminManualPaymentHandler, completeAdminManualPaymentHandler };
-
 export {
-  createPaypalOrderHandler,
-  paypalReturnHandler,
-  paypalCancelHandler,
-  paypalWebhookHandler,
-  createStripeIntentHandler,
-  stripeWebhookHandler,
-  stripeWebhookDebugHandler,
-  finalizeStripePaymentHandler,
-  stripeFinalizeFallbackHandler,
-  testStripePaymentSuccessHandler
+  createAdminManualPaymentHandler,
+  completeAdminManualPaymentHandler
 };
